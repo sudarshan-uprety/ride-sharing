@@ -1,4 +1,4 @@
-package constants
+package utils
 
 // HTTP Status Codes
 const (
@@ -32,11 +32,14 @@ const (
 
 // Error Messages
 const (
-	ERROR_DOES_NOT_EXIST           = "Resource Does Not Exist."
-	ERROR_SERVER_DOWN              = "Server Down"
-	INTERNAL_SERVER_ERROR          = "Internal Server Error"
-	EMAIL_SERVER_ERROR             = "Email Server Error"
-	DATABASE_NOT_AVAILABLE_MESSAGE = "Sorry, but the database is either offline or not accepting connections."
+	ERROR_DOES_NOT_EXIST  = "Resource Does Not Exist."
+	ERROR_SERVER_DOWN     = "Server Down"
+	INTERNAL_SERVER_ERROR = "Internal Server Error"
+	EMAIL_SERVER_ERROR    = "Email Server Error"
+	ErrInvalidInput       = "Invalid input"
+	ErrEmailAlreadyUsed   = "Email already used"
+	ErrHashingPassword    = "Failed to hash password"
+	ErrUserCreate         = "Failed to create user"
 )
 
 // Database connection error phrases

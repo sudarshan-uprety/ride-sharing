@@ -6,6 +6,7 @@ import (
 	"ride-sharing/initializers"
 	"ride-sharing/models"
 	"ride-sharing/schemas"
+	"ride-sharing/utils"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,7 @@ func CreateUser(c *gin.Context) {
 	var authInput schemas.AuthInput
 
 	if err := c.ShouldBindJSON(&authInput); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.Error(c.Writer, http.StatusBadRequest, "Invalid input", err.Error())
 		return
 	}
 
@@ -27,13 +28,13 @@ func CreateUser(c *gin.Context) {
 	initializers.DB.Where("email=?", authInput.Email).Find(&userFound)
 
 	if userFound.ID != uuid.Nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already used"})
+		utils.Error(c.Writer, http.StatusBadRequest, "Email already used", nil)
 		return
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(authInput.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.Error(c.Writer, http.StatusInternalServerError, "Failed to hash password", err.Error())
 		return
 	}
 
@@ -44,7 +45,7 @@ func CreateUser(c *gin.Context) {
 
 	initializers.DB.Create(&user)
 
-	c.JSON(http.StatusOK, gin.H{"data": user})
+	utils.Success(c.Writer, http.StatusCreated, "User created successfully", user, "")
 
 }
 
