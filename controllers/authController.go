@@ -50,11 +50,10 @@ func CreateUser(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
-
 	var authInput schemas.AuthInput
 
 	if err := c.ShouldBindJSON(&authInput); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.Error(c.Writer, http.StatusBadRequest, utils.ErrInvalidInput, err.Error())
 		return
 	}
 
@@ -62,29 +61,31 @@ func Login(c *gin.Context) {
 	initializers.DB.Where("email=?", authInput.Email).Find(&userFound)
 
 	if userFound.ID == uuid.Nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
+		utils.Error(c.Writer, http.StatusNotFound, "User not found", nil)
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(userFound.Password), []byte(authInput.Password)); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid password"})
+		utils.Error(c.Writer, http.StatusUnauthorized, "Invalid password", err.Error())
 		return
 	}
 
-	generateToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	// Create JWT token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":  userFound.ID,
 		"exp": time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	token, err := generateToken.SignedString([]byte(os.Getenv("SECRET")))
-
+	signedToken, err := token.SignedString([]byte(os.Getenv("SECRET")))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to generate token"})
+		utils.Error(c.Writer, http.StatusInternalServerError, "Failed to generate token", err.Error())
+		return
 	}
 
-	c.JSON(200, gin.H{
-		"token": token,
-	})
+	// Return token as success
+	utils.Success(c.Writer, http.StatusOK, utils.AUTH_SUCCESS_LOGIN, gin.H{
+		"token": signedToken,
+	}, "")
 }
 
 func GetUserProfile(c *gin.Context) {
