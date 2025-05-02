@@ -1,4 +1,4 @@
-package schemas
+package userSchemas
 
 type LoginRequest struct {
 	Email    string `json:"email" valid:"required,email"`
@@ -15,8 +15,8 @@ type AuthInput struct {
 	Password string `json:"password" valid:"required,stringlength(6|100)"`
 }
 
-type RegisterRequest struct {
-}
+// type RegisterRequest struct {
+// }
 
-type RegisterResponse struct {
-}
+// type RegisterResponse struct {
+// }

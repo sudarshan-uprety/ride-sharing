@@ -1,9 +1,9 @@
 package main
 
 import (
-	"ride-sharing/controllers"
 	"ride-sharing/initializers"
 	"ride-sharing/middlewares"
+	"ride-sharing/src/users"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,8 +17,8 @@ func init() {
 func main() {
 	router := gin.Default()
 
-	router.POST("/auth/signup", controllers.CreateUser)
-	router.POST("/auth/login", controllers.Login)
-	router.GET("/user/profile", middlewares.CheckAuth, controllers.GetUserProfile)
+	router.POST("/auth/signup", users.CreateUser)
+	router.POST("/auth/login", users.Login)
+	router.GET("/user/profile", middlewares.CheckAuth, users.GetUserProfile)
 	router.Run()
 }
