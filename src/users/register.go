@@ -17,7 +17,7 @@ func CreateUser(c *gin.Context) {
 	var authInput userSchemas.AuthInput
 
 	if err := c.ShouldBindJSON(&authInput); err != nil {
-		utils.Error(c.Writer, http.StatusBadRequest, "Invalid input", err.Error())
+		utils.Error(c.Writer, http.StatusBadRequest, "Invalid input", "Invalid input")
 		return
 	}
 
@@ -25,7 +25,7 @@ func CreateUser(c *gin.Context) {
 	initializers.DB.Where("email=?", authInput.Email).Find(&userFound)
 
 	if userFound.ID != uuid.Nil {
-		utils.Error(c.Writer, http.StatusBadRequest, "Email already used", nil)
+		utils.Error(c.Writer, http.StatusConflict, "Email already used.", nil)
 		return
 	}
 
