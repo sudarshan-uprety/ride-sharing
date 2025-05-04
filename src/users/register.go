@@ -1,6 +1,7 @@
 package users
 
 import (
+	"log"
 	"net/http"
 	"ride-sharing/initializers"
 	"ride-sharing/models"
@@ -16,7 +17,9 @@ func CreateUser(c *gin.Context) {
 	var registerRequest userSchemas.UserRegisterRequest
 
 	if err := c.ShouldBindJSON(&registerRequest); err != nil {
-		utils.Error(c.Writer, http.StatusBadRequest, "Invalid input", err.Error())
+		errorMessages := utils.FormatValidatorError(err)
+		log.Println(errorMessages)
+		utils.Error(c.Writer, http.StatusBadRequest, "Invalid input", errorMessages)
 		return
 	}
 
