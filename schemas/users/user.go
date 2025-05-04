@@ -4,8 +4,11 @@ import (
 	"errors"
 	userQueries "ride-sharing/src/users/queries"
 	"ride-sharing/utils"
+	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type UserRegisterRequest struct {
@@ -17,31 +20,41 @@ type UserRegisterRequest struct {
 	ConfirmPassword string `json:"confirm_password" binding:"required"`
 }
 
-func (u *UserRegisterRequest) Validate() error {
+func (u *UserRegisterRequest) Validate(c *gin.Context) error {
 	// 1. First validate required fields (email, full_name, phone, etc.)
 	if ok, err := govalidator.ValidateStruct(u); !ok {
-		return err // Returns which field is missing/invalid
+		// Returns which field is missing/invalid
+		utils.Error(c.Writer, utils.ERROR_BAD_REQUEST_CODE, "Bad request", err.Error())
+	}
+	// 2. Validate password strength (only if passwords match)
+	if err := utils.ValidatePassword(u.Password); err != nil {
+		utils.Error(c.Writer, utils.ERROR_BAD_REQUEST_CODE, "password validation failed.", err.Error())
 	}
 
-	// 2. Check if Password and ConfirmPassword match (early exit if mismatch)
+	// 3. Check if Password and ConfirmPassword match (early exit if mismatch)
 	if u.Password != u.ConfirmPassword {
 		return errors.New("password and confirm password must match")
 	}
 
-	// 3. Validate password strength (only if passwords match)
-	if err := utils.ValidatePassword(u.Password); err != nil {
-		return err
-	}
-
 	// 4. Check if email/phone already exists
 	if userQueries.EmailExists(u.Email) {
-		return errors.New("email already registered")
+		utils.Error(c.Writer, utils.ERROR_RESOURCE_ALREADY_EXISTS_CODE, utils.ERROR_RESOURCE_ALREADY_EXISTS, nil)
+
 	}
 	if userQueries.PhoneExists(u.Phone) {
-		return errors.New("phone number already registered")
+		utils.Error(c.Writer, utils.ERROR_RESOURCE_ALREADY_EXISTS_CODE, utils.ERROR_RESOURCE_ALREADY_EXISTS, nil)
 	}
 
 	return nil
+}
+
+type UserRegisterResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	FullName  string    `json:"full_name"`
+	Phone     string    `json:"phone"`
+	Address   string    `json:"address"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type LoginRequest struct {

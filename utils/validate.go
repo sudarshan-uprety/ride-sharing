@@ -2,10 +2,12 @@ package utils
 
 import (
 	"errors"
+	"log"
 	"regexp"
 )
 
 func ValidatePassword(password string) error {
+	log.Println(len(password))
 	if len(password) < 8 {
 		return errors.New("password must be at least 8 characters long")
 	}

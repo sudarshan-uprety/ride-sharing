@@ -20,9 +20,10 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Use the Validate method to perform all validation checks
-	if err := registerRequest.Validate(); err != nil {
-		utils.Error(c.Writer, http.StatusBadRequest, err.Error(), nil)
+	// Validation
+	if err := registerRequest.Validate(c); err != nil {
+		errorMessages := utils.FormatValidatorError(err)
+		utils.Error(c.Writer, http.StatusBadRequest, "Validation failed", errorMessages)
 		return
 	}
 
@@ -44,8 +45,14 @@ func CreateUser(c *gin.Context) {
 
 	initializers.DB.Create(&user)
 
-	// Don't return password in response
-	user.Password = ""
+	response := userSchemas.UserRegisterResponse{
+		ID:        user.ID,
+		Email:     user.Email,
+		FullName:  user.FullName,
+		Phone:     user.Phone,
+		Address:   user.Address,
+		CreatedAt: user.CreatedAt,
+	}
 
-	utils.Success(c.Writer, http.StatusCreated, "User created successfully", user, "")
+	utils.Success(c.Writer, http.StatusCreated, "User created successfully", response, "")
 }
