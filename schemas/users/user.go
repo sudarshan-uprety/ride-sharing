@@ -2,47 +2,43 @@ package userSchemas
 
 import (
 	"errors"
-	"regexp"
 	userQueries "ride-sharing/src/users/queries"
+	"ride-sharing/utils"
 
 	"github.com/asaskevich/govalidator"
 )
 
 type UserRegisterRequest struct {
-	Email           string `json:"email" validate:"required,email"`
-	FullName        string `json:"full_name" validate:"required"`
-	Phone           string `json:"phone" validate:"required,min=10"`
-	Address         string `json:"address" validate:"required"`
-	Password        string `json:"password" validate:"required,min=8"`
-	ConfirmPassword string `json:"confirm_password" validate:"required"`
+	Email           string `json:"email" binding:"required,email"`
+	FullName        string `json:"full_name" binding:"required"`
+	Phone           string `json:"phone" binding:"required,min=10"`
+	Address         string `json:"address" binding:"required"`
+	Password        string `json:"password" binding:"required,min=8"`
+	ConfirmPassword string `json:"confirm_password" binding:"required"`
 }
 
 func (u *UserRegisterRequest) Validate() error {
-	// Validate struct fields based on tags
+	// 1. First validate required fields (email, full_name, phone, etc.)
 	if ok, err := govalidator.ValidateStruct(u); !ok {
+		return err // Returns which field is missing/invalid
+	}
+
+	// 2. Check if Password and ConfirmPassword match (early exit if mismatch)
+	if u.Password != u.ConfirmPassword {
+		return errors.New("password and confirm password must match")
+	}
+
+	// 3. Validate password strength (only if passwords match)
+	if err := utils.ValidatePassword(u.Password); err != nil {
 		return err
 	}
 
-	// Custom password rule: min 8, 1 uppercase, 1 digit, 1 special char
-	passwordRegex := `^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$`
-	matched, _ := regexp.MatchString(passwordRegex, u.Password)
-	if !matched {
-		return errors.New("password must be at least 8 characters long and include 1 uppercase letter, 1 digit, and 1 special character")
-	}
-
-	// Check if Password and ConfirmPassword match
-	if u.Password != u.ConfirmPassword {
-		return errors.New("Password and Confirm Password must match")
-	}
-
-	// Check if email already exists
+	// 4. Check if email/phone already exists
 	if userQueries.EmailExists(u.Email) {
-		return errors.New("Email already registered")
+		return errors.New("email already registered")
 	}
-
-	// Check if phone already exists
 	if userQueries.PhoneExists(u.Phone) {
-		return errors.New("Phone number already registered")
+		return errors.New("phone number already registered")
 	}
 
 	return nil

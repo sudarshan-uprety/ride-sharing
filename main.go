@@ -19,7 +19,7 @@ func main() {
 	router := gin.Default()
 
 	router.POST("/auth/signup", users.CreateUser)
-	// router.POST("/auth/login", users.Login)
+	router.POST("/auth/login", users.Login)
 	// router.GET("/user/profile", middlewares.CheckAuth, users.GetUserProfile)
 	router.Run()
 }
