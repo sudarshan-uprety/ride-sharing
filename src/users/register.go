@@ -8,40 +8,44 @@ import (
 	"ride-sharing/utils"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func CreateUser(c *gin.Context) {
+	// Use the UserRegisterRequest struct instead of AuthInput
+	var registerRequest userSchemas.UserRegisterRequest
 
-	var authInput userSchemas.AuthInput
-
-	if err := c.ShouldBindJSON(&authInput); err != nil {
-		utils.Error(c.Writer, http.StatusBadRequest, "Invalid input", "Invalid input")
+	if err := c.ShouldBindJSON(&registerRequest); err != nil {
+		utils.Error(c.Writer, http.StatusBadRequest, "Invalid input", err.Error())
 		return
 	}
 
-	var userFound models.User
-	initializers.DB.Where("email=?", authInput.Email).Find(&userFound)
-
-	if userFound.ID != uuid.Nil {
-		utils.Error(c.Writer, http.StatusConflict, "Email already used.", nil)
+	// Use the Validate method to perform all validation checks
+	if err := registerRequest.Validate(); err != nil {
+		utils.Error(c.Writer, http.StatusBadRequest, err.Error(), nil)
 		return
 	}
 
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(authInput.Password), bcrypt.DefaultCost)
+	// If we reach here, all validations have passed
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
 	if err != nil {
 		utils.Error(c.Writer, http.StatusInternalServerError, "Failed to hash password", err.Error())
 		return
 	}
 
+	// Create user with more fields from the request
 	user := models.User{
-		Email:    authInput.Email,
+		Email:    registerRequest.Email,
+		FullName: registerRequest.FullName,
+		Phone:    registerRequest.Phone,
+		Address:  registerRequest.Address,
 		Password: string(passwordHash),
 	}
 
 	initializers.DB.Create(&user)
 
-	utils.Success(c.Writer, http.StatusCreated, "User created successfully", user, "")
+	// Don't return password in response
+	user.Password = ""
 
+	utils.Success(c.Writer, http.StatusCreated, "User created successfully", user, "")
 }
