@@ -22,13 +22,13 @@ type UserRegisterRequest struct {
 
 func (u *UserRegisterRequest) Validate(c *gin.Context) error {
 	// 1. First validate required fields (email, full_name, phone, etc.)
-	if ok, err := govalidator.ValidateStruct(u); !ok {
+	if ok, _ := govalidator.ValidateStruct(u); !ok {
 		// Returns which field is missing/invalid
-		utils.Error(c.Writer, utils.ERROR_BAD_REQUEST_CODE, "Bad request", err.Error())
+		return errors.New("validation error")
 	}
 	// 2. Validate password strength (only if passwords match)
 	if err := utils.ValidatePassword(u.Password); err != nil {
-		utils.Error(c.Writer, utils.ERROR_BAD_REQUEST_CODE, "password validation failed.", err.Error())
+		return errors.New("password validation failed")
 	}
 
 	// 3. Check if Password and ConfirmPassword match (early exit if mismatch)
@@ -38,11 +38,11 @@ func (u *UserRegisterRequest) Validate(c *gin.Context) error {
 
 	// 4. Check if email/phone already exists
 	if userQueries.EmailExists(u.Email) {
-		utils.Error(c.Writer, utils.ERROR_RESOURCE_ALREADY_EXISTS_CODE, utils.ERROR_RESOURCE_ALREADY_EXISTS, nil)
-
+		return errors.New("email already exists")
 	}
+
 	if userQueries.PhoneExists(u.Phone) {
-		utils.Error(c.Writer, utils.ERROR_RESOURCE_ALREADY_EXISTS_CODE, utils.ERROR_RESOURCE_ALREADY_EXISTS, nil)
+		return errors.New("phone number already exists")
 	}
 
 	return nil
