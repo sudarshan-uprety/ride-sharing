@@ -12,29 +12,33 @@ import (
 )
 
 func CreateUser(c *gin.Context) {
-	// Use the UserRegisterRequest struct instead of AuthInput
 	var registerRequest userSchemas.UserRegisterRequest
 
+	// Bind and validate request
 	if err := c.ShouldBindJSON(&registerRequest); err != nil {
 		utils.HandleRequestErrors(c, err)
 		return
 	}
 
-	// Validation
-	if err := registerRequest.Validate(c); err != nil {
-		errorMessages := utils.FormatValidatorError(err)
-		utils.Error(c.Writer, http.StatusBadRequest, "Validation failed", errorMessages)
+	// Custom validation
+	if err := registerRequest.Validate(); err != nil {
+		utils.ErrorResponse(c, err)
 		return
 	}
 
-	// If we reach here, all validations have passed
+	// Hash password
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
 	if err != nil {
-		utils.Error(c.Writer, http.StatusInternalServerError, "Failed to hash password", err.Error())
+		utils.ErrorResponse(c, utils.NewErrorResponse(
+			http.StatusInternalServerError,
+			"Failed to hash password",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	// Create user with more fields from the request
+	// Create user
 	user := models.User{
 		Email:    registerRequest.Email,
 		FullName: registerRequest.FullName,
@@ -43,7 +47,15 @@ func CreateUser(c *gin.Context) {
 		Password: string(passwordHash),
 	}
 
-	initializers.DB.Create(&user)
+	if err := initializers.DB.Create(&user).Error; err != nil {
+		utils.ErrorResponse(c, utils.NewErrorResponse(
+			http.StatusInternalServerError,
+			"Failed to create user",
+			err.Error(),
+			nil,
+		))
+		return
+	}
 
 	response := userSchemas.UserRegisterResponse{
 		ID:        user.ID,
@@ -54,5 +66,5 @@ func CreateUser(c *gin.Context) {
 		CreatedAt: user.CreatedAt,
 	}
 
-	utils.Success(c.Writer, http.StatusCreated, "User created successfully", response, "")
+	utils.SuccessResponse(c, http.StatusCreated, "User created successfully", response, "")
 }

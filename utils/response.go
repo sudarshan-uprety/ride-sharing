@@ -1,40 +1,62 @@
 package utils
 
 import (
-	"encoding/json"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-type Response struct {
-	Message string      `json:"message"`
-	Success bool        `json:"success"`
-	Data    interface{} `json:"data,omitempty"`
-	Errors  interface{} `json:"errors,omitempty"`
-	Warning string      `json:"warning,omitempty"`
+// ErrorResponse represents a standardized error response
+type ErrorResponseStruct struct {
+	StatusCode int         `json:"-"`
+	Message    string      `json:"message"`
+	Details    string      `json:"details,omitempty"`
+	Errors     interface{} `json:"errors,omitempty"`
 }
 
-// Success returns a successful JSON response
-func Success(message string, data interface{}, warning string, statusCode int) (Response, int) {
-	return Response{
-		Message: message,
-		Success: true,
-		Data:    data,
-		Warning: warning,
-	}, statusCode
+func (e ErrorResponseStruct) Error() string {
+	return e.Message
 }
 
-// Error returns an error JSON response
-func Error(message string, errors interface{}, warning string, statusCode int) (Response, int) {
-	return Response{
-		Message: message,
-		Success: false,
-		Errors:  errors,
-	}, statusCode
+func NewErrorResponse(statusCode int, message, details string, errors interface{}) *ErrorResponseStruct {
+	return &ErrorResponseStruct{
+		StatusCode: statusCode,
+		Message:    message,
+		Details:    details,
+		Errors:     errors,
+	}
 }
 
-// writeJSON handles encoding and header writing
-func writeJSON(w http.ResponseWriter, statusCode int, resp Response) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(resp)
+// SuccessResponse sends a standardized success response
+func SuccessResponse(c *gin.Context, statusCode int, message string, data interface{}, warning string) {
+	c.JSON(statusCode, gin.H{
+		"success": true,
+		"message": message,
+		"data":    data,
+		"warning": warning,
+	})
+}
+
+// ErrorResponse sends a standardized error response
+func ErrorResponse(c *gin.Context, err error) {
+	// Default error response
+	statusCode := http.StatusBadRequest
+	message := "Validation failed"
+	// details := err.Error()
+	errors := make(map[string]string)
+
+	// If it's our custom error type, use its properties
+	if errResp, ok := err.(*ErrorResponseStruct); ok {
+		statusCode = errResp.StatusCode
+		message = errResp.Message
+		if errResp.Errors != nil {
+			errors = errResp.Errors.(map[string]string)
+		}
+	}
+
+	c.JSON(statusCode, gin.H{
+		"success": false,
+		"message": message,
+		"errors":  errors,
+	})
 }

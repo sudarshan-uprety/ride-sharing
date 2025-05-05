@@ -6,8 +6,6 @@ import (
 	"ride-sharing/utils"
 	"time"
 
-	"github.com/asaskevich/govalidator"
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
@@ -20,25 +18,41 @@ type UserRegisterRequest struct {
 	ConfirmPassword string `json:"confirm_password" binding:"required"`
 }
 
-func (u *UserRegisterRequest) Validate(c *gin.Context) error {
-	if ok, _ := govalidator.ValidateStruct(u); !ok {
-		return utils.Error("Validation error", "Invalid or missing fields", "", http.StatusBadRequest)
-	}
-
+func (u *UserRegisterRequest) Validate() error {
 	if err := utils.ValidatePassword(u.Password); err != nil {
-		return utils.Error("Password validation failed", err.Error(), "", http.StatusBadRequest)
+		return utils.NewErrorResponse(
+			http.StatusBadRequest,
+			"Password validation failed",
+			err.Error(),
+			nil,
+		)
 	}
 
 	if u.Password != u.ConfirmPassword {
-		return utils.Error("Password mismatch", "Password and confirm password must match", "", http.StatusBadRequest)
+		return utils.NewErrorResponse(
+			http.StatusBadRequest,
+			"Password mismatch",
+			"Password and confirm password must match",
+			nil,
+		)
 	}
 
 	if userQueries.EmailExists(u.Email) {
-		return utils.Error("Email already exists", nil, "", http.StatusConflict)
+		return utils.NewErrorResponse(
+			http.StatusConflict,
+			"Email already exists",
+			"",
+			nil,
+		)
 	}
 
 	if userQueries.PhoneExists(u.Phone) {
-		return utils.Error("Phone number already exists", nil, "", http.StatusConflict)
+		return utils.NewErrorResponse(
+			http.StatusConflict,
+			"Phone number already exists",
+			"",
+			nil,
+		)
 	}
 
 	return nil
