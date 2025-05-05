@@ -14,24 +14,22 @@ type Response struct {
 }
 
 // Success returns a successful JSON response
-func Success(w http.ResponseWriter, statusCode int, message string, data interface{}, warning string) {
-	resp := Response{
+func Success(message string, data interface{}, warning string, statusCode int) (Response, int) {
+	return Response{
 		Message: message,
 		Success: true,
 		Data:    data,
 		Warning: warning,
-	}
-	writeJSON(w, statusCode, resp)
+	}, statusCode
 }
 
 // Error returns an error JSON response
-func Error(w http.ResponseWriter, statusCode int, message string, errors interface{}) {
-	resp := Response{
+func Error(message string, errors interface{}, warning string, statusCode int) (Response, int) {
+	return Response{
 		Message: message,
 		Success: false,
 		Errors:  errors,
-	}
-	writeJSON(w, statusCode, resp)
+	}, statusCode
 }
 
 // writeJSON handles encoding and header writing

@@ -1,21 +1,22 @@
 package utils
 
+import "net/http"
+
 // HTTP Status Codes
 const (
-	SUCCESS_CODE                       = 200
-	SUCCESS_FETCH_CODE                 = 200
-	SUCCESS_UPDATED_CODE               = 200
-	SUCCESS_CREATED_CODE               = 201
-	SUCCESS_DELETED_CODE               = 204
-	ERROR_BAD_REQUEST_CODE             = 400
-	ERROR_UNAUTHORIZED_CODE            = 401
-	ERROR_FORBIDDEN_CODE               = 403
-	ERROR_NOT_FOUND                    = 404
-	ERROR_RESOURCE_ALREADY_EXISTS_CODE = 409
-	ERROR_FOUND_CODE                   = 302
-	ERROR_INTERNAL_CODE                = 500
-	SERVICE_UNAVAILABLE_CODE           = 503
-	UNPROCESSABLE_ENTITY_CODE          = 422
+	SUCCESS_CODE                       = http.StatusOK
+	SUCCESS_FETCH_CODE                 = http.StatusOK
+	SUCCESS_UPDATED_CODE               = http.StatusOK
+	SUCCESS_CREATED_CODE               = http.StatusCreated
+	SUCCESS_DELETED_CODE               = http.StatusNoContent
+	ERROR_BAD_REQUEST_CODE             = http.StatusBadRequest
+	ERROR_UNAUTHORIZED_CODE            = http.StatusUnauthorized
+	ERROR_FORBIDDEN_CODE               = http.StatusForbidden
+	ERROR_NOT_FOUND                    = http.StatusNotFound
+	ERROR_RESOURCE_ALREADY_EXISTS_CODE = http.StatusConflict
+	ERROR_INTERNAL_CODE                = http.StatusInternalServerError
+	SERVICE_UNAVAILABLE_CODE           = http.StatusServiceUnavailable
+	UNPROCESSABLE_ENTITY_CODE          = http.StatusUnprocessableEntity
 )
 
 // Success Messages
@@ -33,15 +34,16 @@ const (
 
 // Error Messages
 const (
-	ERROR_DOES_NOT_EXIST          = "Resource Does Not Exist."
-	ERROR_RESOURCE_ALREADY_EXISTS = "Resource Already Exist"
-	ERROR_SERVER_DOWN             = "Server Down"
-	INTERNAL_SERVER_ERROR         = "Internal Server Error"
-	EMAIL_SERVER_ERROR            = "Email Server Error"
-	ErrInvalidInput               = "Invalid input"
-	ErrEmailAlreadyUsed           = "Email already used"
-	ErrHashingPassword            = "Failed to hash password"
-	ErrUserCreate                 = "Failed to create user"
+	ERROR_DOES_NOT_EXIST                  = "Resource Does Not Exist."
+	ERROR_RESOURCE_ALREADY_EXISTS         = "Resource Already Exist"
+	ERROR_SERVER_DOWN                     = "Server Down"
+	INTERNAL_SERVER_ERROR                 = "Internal Server Error"
+	EMAIL_SERVER_ERROR                    = "Email Server Error"
+	ErrInvalidInput                       = "Invalid input"
+	ErrEmailAlreadyUsed                   = "Email already used"
+	ErrHashingPassword                    = "Failed to hash password"
+	ErrUserCreate                         = "Failed to create user"
+	DATABASE_NOT_AVAILABLE_FOR_CONNECTION = "Internal Server Error"
 )
 
 // Database connection error phrases

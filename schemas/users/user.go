@@ -1,7 +1,7 @@
 package userSchemas
 
 import (
-	"errors"
+	"net/http"
 	userQueries "ride-sharing/src/users/queries"
 	"ride-sharing/utils"
 	"time"
@@ -21,28 +21,24 @@ type UserRegisterRequest struct {
 }
 
 func (u *UserRegisterRequest) Validate(c *gin.Context) error {
-	// 1. First validate required fields (email, full_name, phone, etc.)
 	if ok, _ := govalidator.ValidateStruct(u); !ok {
-		// Returns which field is missing/invalid
-		return errors.New("validation error")
+		return utils.Error("Validation error", "Invalid or missing fields", "", http.StatusBadRequest)
 	}
-	// 2. Validate password strength (only if passwords match)
+
 	if err := utils.ValidatePassword(u.Password); err != nil {
-		return errors.New("password validation failed")
+		return utils.Error("Password validation failed", err.Error(), "", http.StatusBadRequest)
 	}
 
-	// 3. Check if Password and ConfirmPassword match (early exit if mismatch)
 	if u.Password != u.ConfirmPassword {
-		return errors.New("password and confirm password must match")
+		return utils.Error("Password mismatch", "Password and confirm password must match", "", http.StatusBadRequest)
 	}
 
-	// 4. Check if email/phone already exists
 	if userQueries.EmailExists(u.Email) {
-		return errors.New("email already exists")
+		return utils.Error("Email already exists", nil, "", http.StatusConflict)
 	}
 
 	if userQueries.PhoneExists(u.Phone) {
-		return errors.New("phone number already exists")
+		return utils.Error("Phone number already exists", nil, "", http.StatusConflict)
 	}
 
 	return nil
