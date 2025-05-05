@@ -1,70 +1,77 @@
 package users
 
-import (
-	"net/http"
-	"ride-sharing/initializers"
-	"ride-sharing/models"
-	userSchemas "ride-sharing/schemas/users"
-	"ride-sharing/utils"
+// import (
+// 	"net/http"
+// 	"ride-sharing/models"
+// 	userSchemas "ride-sharing/schemas/users"
+// 	userQueries "ride-sharing/src/users/queries"
+// 	"ride-sharing/utils"
 
-	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
-)
+// 	"github.com/gin-gonic/gin"
+// 	"golang.org/x/crypto/bcrypt"
+// 	"gorm.io/gorm"
+// )
 
-func CreateUser(c *gin.Context) {
-	var registerRequest userSchemas.UserRegisterRequest
+// type UserHandler struct {
+// 	Validator *userSchemas.UserValidator
+// 	Repo      userQueries.UserRepository
+// }
 
-	// Bind and validate request
-	if err := c.ShouldBindJSON(&registerRequest); err != nil {
-		utils.HandleRequestErrors(c, err)
-		return
-	}
+// func NewUserHandler(db *gorm.DB) *UserHandler {
+// 	repo := userQueries.NewUserRepository(db)
+// 	validator := userSchemas.NewUserValidator(repo)
+// 	return &UserHandler{
+// 		Validator: validator,
+// 		Repo:      repo,
+// 	}
+// }
 
-	// Custom validation
-	if err := registerRequest.Validate(); err != nil {
-		utils.ErrorResponse(c, err)
-		return
-	}
+// func (h *UserHandler) RegisterUser(c *gin.Context) {
+// 	var registerRequest userSchemas.UserRegisterRequest
 
-	// Hash password
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
-	if err != nil {
-		utils.ErrorResponse(c, utils.NewErrorResponse(
-			http.StatusInternalServerError,
-			"Failed to hash password",
-			err.Error(),
-			nil,
-		))
-		return
-	}
+// 	if err := c.ShouldBindJSON(&registerRequest); err != nil {
+// 		utils.HandleRequestErrors(c, err)
+// 		return
+// 	}
 
-	// Create user
-	user := models.User{
-		Email:    registerRequest.Email,
-		FullName: registerRequest.FullName,
-		Phone:    registerRequest.Phone,
-		Address:  registerRequest.Address,
-		Password: string(passwordHash),
-	}
+// 	// Validate with context
+// 	if err := h.Validator.Validate(c.Request.Context(), &registerRequest); err != nil {
+// 		utils.ErrorResponse(c, err)
+// 		return
+// 	}
 
-	if err := initializers.DB.Create(&user).Error; err != nil {
-		utils.ErrorResponse(c, utils.NewErrorResponse(
-			http.StatusInternalServerError,
-			"Failed to create user",
-			err.Error(),
-			nil,
-		))
-		return
-	}
+// 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
+// 	if err != nil {
+// 		utils.ErrorResponse(c, utils.NewErrorResponse(
+// 			http.StatusInternalServerError,
+// 			"Failed to hash password",
+// 			err.Error(),
+// 			nil,
+// 		))
+// 		return
+// 	}
 
-	response := userSchemas.UserRegisterResponse{
-		ID:        user.ID,
-		Email:     user.Email,
-		FullName:  user.FullName,
-		Phone:     user.Phone,
-		Address:   user.Address,
-		CreatedAt: user.CreatedAt,
-	}
+// 	user := models.User{
+// 		Email:    registerRequest.Email,
+// 		FullName: registerRequest.FullName,
+// 		Phone:    registerRequest.Phone,
+// 		Address:  registerRequest.Address,
+// 		Password: string(passwordHash),
+// 	}
 
-	utils.SuccessResponse(c, http.StatusCreated, "User created successfully", response, "")
-}
+// 	if _, err := h.Repo.CreateUser(c.Request.Context(), &user); err != nil {
+// 		utils.ErrorResponse(c, err)
+// 		return
+// 	}
+
+// 	response := userSchemas.UserRegisterResponse{
+// 		ID:        user.ID,
+// 		Email:     user.Email,
+// 		FullName:  user.FullName,
+// 		Phone:     user.Phone,
+// 		Address:   user.Address,
+// 		CreatedAt: user.CreatedAt,
+// 	}
+
+// 	utils.SuccessResponse(c, http.StatusCreated, "User created successfully", response, "")
+// }

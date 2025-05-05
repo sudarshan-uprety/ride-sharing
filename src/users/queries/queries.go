@@ -1,38 +1,53 @@
 package userQueries
 
 import (
-	"ride-sharing/initializers"
+	"context"
 	"ride-sharing/models"
 
 	"gorm.io/gorm"
 )
 
-func EmailExists(email string) bool {
-	var userFound models.User
-	result := initializers.DB.Where("email = ?", email).First(&userFound)
-
-	// Return true if email is found, false if not found, and handle errors
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return false
-		}
-		// Optionally, handle other errors here, if needed
-		return false
-	}
-	return true // Email exists
+type UserRepository interface {
+	EmailExists(ctx context.Context, email string) (bool, error)
+	PhoneExists(ctx context.Context, phone string) (bool, error)
+	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
 }
 
-func PhoneExists(email string) bool {
-	var phoneFound models.User
-	result := initializers.DB.Where("phone = ?", email).First(&phoneFound)
+type userRepository struct {
+	db *gorm.DB
+}
 
-	// Return true if phone is found, false if not found, and handle errors
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return false
-		}
-		// Optionally, handle other errors here, if needed
-		return false
+func NewUserRepository(db *gorm.DB) UserRepository {
+	return &userRepository{db: db}
+}
+
+// Implement EmailExists
+func (r *userRepository) EmailExists(ctx context.Context, email string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("email = ?", email).
+		Count(&count).
+		Error
+	return count > 0, err
+}
+
+// Implement PhoneExists
+func (r *userRepository) PhoneExists(ctx context.Context, phone string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("phone = ?", phone).
+		Count(&count).
+		Error
+	return count > 0, err
+}
+
+// Implement CreateUser
+func (r *userRepository) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
+	err := r.db.WithContext(ctx).Create(user).Error
+	if err != nil {
+		return nil, err
 	}
-	return true // Phone exists
+	return user, nil
 }

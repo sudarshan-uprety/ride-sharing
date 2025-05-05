@@ -1,6 +1,7 @@
 package userSchemas
 
 import (
+	"context"
 	"net/http"
 	userQueries "ride-sharing/src/users/queries"
 	"ride-sharing/utils"
@@ -18,7 +19,16 @@ type UserRegisterRequest struct {
 	ConfirmPassword string `json:"confirm_password" binding:"required"`
 }
 
-func (u *UserRegisterRequest) Validate() error {
+type UserValidator struct {
+	UserRepo userQueries.UserRepository
+}
+
+func NewUserValidator(repo userQueries.UserRepository) *UserValidator {
+	return &UserValidator{UserRepo: repo}
+}
+
+func (v *UserValidator) Validate(ctx context.Context, u *UserRegisterRequest) error {
+	// Basic field validation
 	if err := utils.ValidatePassword(u.Password); err != nil {
 		return utils.NewErrorResponse(
 			http.StatusBadRequest,
@@ -37,7 +47,17 @@ func (u *UserRegisterRequest) Validate() error {
 		)
 	}
 
-	if userQueries.EmailExists(u.Email) {
+	// Database checks
+	emailExists, err := v.UserRepo.EmailExists(ctx, u.Email)
+	if err != nil {
+		return utils.NewErrorResponse(
+			http.StatusInternalServerError,
+			"Database error",
+			err.Error(),
+			nil,
+		)
+	}
+	if emailExists {
 		return utils.NewErrorResponse(
 			http.StatusConflict,
 			"Email already exists",
@@ -46,7 +66,16 @@ func (u *UserRegisterRequest) Validate() error {
 		)
 	}
 
-	if userQueries.PhoneExists(u.Phone) {
+	phoneExists, err := v.UserRepo.PhoneExists(ctx, u.Phone)
+	if err != nil {
+		return utils.NewErrorResponse(
+			http.StatusInternalServerError,
+			"Database error",
+			err.Error(),
+			nil,
+		)
+	}
+	if phoneExists {
 		return utils.NewErrorResponse(
 			http.StatusConflict,
 			"Phone number already exists",
