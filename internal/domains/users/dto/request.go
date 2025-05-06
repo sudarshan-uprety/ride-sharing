@@ -8,11 +8,12 @@ import (
 )
 
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
-	FullName string `json:"full_name" binding:"required"`
-	Phone    string `json:"phone" binding:"required"`
-	Address  string `json:"address" binding:"required"`
+	Email           string `json:"email" binding:"required,email"`
+	Password        string `json:"password" binding:"required,min=8"`
+	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=Password"`
+	FullName        string `json:"full_name" binding:"required"`
+	Phone           string `json:"phone" binding:"required,e164"`
+	Address         string `json:"address" binding:"required"`
 }
 
 type LoginRequest struct {

@@ -7,6 +7,7 @@ import (
 	"ride-sharing/internal/domains/users/service"
 	"ride-sharing/internal/pkg/errors"
 	"ride-sharing/internal/pkg/response"
+	"ride-sharing/internal/pkg/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,7 +23,8 @@ func NewUserHandler(service *service.UserService) *UserHandler {
 func (h *UserHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, errors.NewValidationError("invalid request body", err.Error()))
+		details := validation.ProcessValidationError(err)
+		response.Error(c, errors.NewValidationError("invalid request body", details))
 		return
 	}
 
