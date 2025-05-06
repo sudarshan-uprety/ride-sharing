@@ -39,7 +39,7 @@ func Load() (*Config, error) {
 	cfg.DB.Port = getEnv("DB_PORT", "5432")
 	cfg.DB.User = getEnv("DB_USER", "postgres") // Default to postgres if not set
 	cfg.DB.Password = getEnv("DB_PASSWORD", "postgres")
-	cfg.DB.Name = getEnv("DB_NAME", "ride_sharing")
+	cfg.DB.Name = getEnv("DB_NAME", "name")
 	log.Println("DB Config:", cfg.DB.Host, cfg.DB.User, cfg.DB.Password) // Debug log
 
 	// Server configuration
