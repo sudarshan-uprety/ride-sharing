@@ -9,16 +9,15 @@ import (
 )
 
 type Common struct {
-	ID                uuid.UUID      `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-	CreatedAt         time.Time      `gorm:"autoCreateTime"`
-	UpdatedAt         time.Time      `gorm:"autoUpdateTime"`
-	DeletedAt         gorm.DeletedAt `gorm:"index"`
-	IsDeleted         bool           `gorm:"default:false"`
-	PasswordChangedAt *time.Time
-	LastLoginAt       *time.Time
-	CreatedBy         *uint
-	UpdatedBy         *uint
-	DeletedBy         *uint
+	ID          uuid.UUID      `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	CreatedAt   time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt   time.Time      `gorm:"autoUpdateTime"`
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
+	IsDeleted   bool           `gorm:"default:false"`
+	LastLoginAt *time.Time
+	CreatedBy   *uint
+	UpdatedBy   *uint
+	DeletedBy   *uint
 }
 
 // BeforeCreate hook to set default UUID if not set

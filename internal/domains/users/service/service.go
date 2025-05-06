@@ -7,6 +7,7 @@ import (
 	"ride-sharing/internal/domains/users/repository"
 	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/errors"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -49,12 +50,14 @@ func (s *UserService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 	}
 
 	// Create user
+	current_time := time.Now()
 	user := &models.User{
-		Email:    req.Email,
-		Password: string(hashedPassword),
-		FullName: req.FullName,
-		Phone:    req.Phone,
-		Active:   false,
+		Email:             req.Email,
+		Password:          string(hashedPassword),
+		FullName:          req.FullName,
+		Phone:             req.Phone,
+		Active:            false,
+		PasswordChangedAt: &current_time,
 	}
 
 	if err := s.repo.Create(ctx, user); err != nil {
@@ -82,12 +85,12 @@ func (s *UserService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 		return nil, errors.NewUnauthorizedError("invalid credentials")
 	}
 
-	accessToken, err := s.tokenService.GenerateAccessToken(user.ID.String())
+	accessToken, err := s.tokenService.GenerateAccessToken(user.ID.String(), user.PasswordChangedAt)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
 
-	refreshToken, err := s.tokenService.GenerateRefreshToken(user.ID.String())
+	refreshToken, err := s.tokenService.GenerateRefreshToken(user.ID.String(), user.PasswordChangedAt)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}

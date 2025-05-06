@@ -22,19 +22,20 @@ func NewTokenService(accessSecret, refreshSecret string, accessExpiry, refreshEx
 	}
 }
 
-func (s *TokenService) GenerateAccessToken(userID string) (string, error) {
-	return s.generateToken(userID, s.accessSecret, s.accessExpiry)
+func (s *TokenService) GenerateAccessToken(userID string, passwordChangedDT *time.Time) (string, error) {
+	return s.generateToken(userID, s.accessSecret, s.accessExpiry, passwordChangedDT)
 }
 
-func (s *TokenService) GenerateRefreshToken(userID string) (string, error) {
-	return s.generateToken(userID, s.refreshSecret, s.refreshExpiry)
+func (s *TokenService) GenerateRefreshToken(userID string, passwordChangedDT *time.Time) (string, error) {
+	return s.generateToken(userID, s.refreshSecret, s.refreshExpiry, passwordChangedDT)
 }
 
-func (s *TokenService) generateToken(userID, secret string, expiry time.Duration) (string, error) {
+func (s *TokenService) generateToken(userID, secret string, expiry time.Duration, passwordChangedDT *time.Time) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": userID,
 		"exp": time.Now().Add(expiry).Unix(),
 		"iat": time.Now().Unix(),
+		"pca": passwordChangedDT.Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
