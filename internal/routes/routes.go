@@ -4,6 +4,7 @@ import (
 	"ride-sharing/internal/domains/users/delivery/http"
 	"ride-sharing/internal/domains/users/repository"
 	"ride-sharing/internal/domains/users/service"
+	"ride-sharing/internal/pkg/middleware"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -12,6 +13,7 @@ import (
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	router := gin.Default()
 
+	router.Use(middleware.GinLoggingMiddleware(), gin.Recovery())
 	// Initialize dependencies
 	userRepo := repository.NewUserRepository(db)
 	userService := service.NewUserService(userRepo)

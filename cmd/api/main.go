@@ -5,6 +5,7 @@ import (
 	"ride-sharing/config"
 	"ride-sharing/internal/domains/users/models"
 	"ride-sharing/internal/pkg/database"
+	"ride-sharing/internal/pkg/logging"
 	"ride-sharing/internal/pkg/validation"
 	"ride-sharing/internal/routes"
 
@@ -18,7 +19,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
-
+	logging.Init(cfg.Log)
+	defer logging.Get().Shutdown()
 	// Initialize database
 	db, err := database.NewPostgresDB(database.DBConfig{
 		Host:     cfg.DB.Host,
