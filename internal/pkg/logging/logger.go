@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"ride-sharing/config"
 	"runtime"
 	"strings"
 	"sync"
@@ -15,6 +14,7 @@ import (
 )
 
 const (
+	// Context keys for tracking request information
 	RequestIDKey  = "x-request-id"
 	CorrelationID = "x-correlation-id"
 )
@@ -23,12 +23,7 @@ var (
 	instance *Logger
 	once     sync.Once
 
-	standardFields = []zap.Field{
-		zap.String("service", config.GetEnv("SERVICE_NAME", "Auth-service")),
-		zap.String("environment", config.GetEnv("ENVIRONMENT", "Dev")),
-		zap.String("version", config.GetEnv("VERSION", "1.0.0")),
-	}
-
+	// Fields to be masked in logs for security
 	sensitiveFields = map[string]struct{}{
 		"password":         {},
 		"confirm_password": {},
@@ -41,61 +36,41 @@ var (
 		"authorization":    {},
 		"set-cookie":       {},
 	}
+
+	// Standard metadata fields that will be included in all logs
+	standardFields []zap.Field
 )
 
+// Logger wraps zap.Logger
 type Logger struct {
 	*zap.Logger
 }
 
+// LogConfig holds configuration for logger initialization
 type LogConfig struct {
-	Environement string
-	Version      string
-	ServiceName  string
+	Environment string
+	Version     string
+	ServiceName string
 }
 
-var logger *zap.Logger
-
+// InitLogger configures the global logger instance with application metadata
 func InitLogger(cfg LogConfig) {
-	logPath := filepath.Join(cfg.Environement, cfg.Version, "log", "log.log")
-
-	writer := zapcore.AddSync(&lumberjack.Logger{
-		Filename:   logPath,
-		MaxSize:    100,
-		MaxBackups: 7,
-		MaxAge:     30,
-		Compress:   true,
-	})
-
-	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.TimeKey = "timestamp"
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-
-	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderConfig),
-		writer,
-		zapcore.InfoLevel,
-	)
-
-	logger = zap.New(core).With(
+	// Set standard fields that will be included in all logs
+	standardFields = []zap.Field{
 		zap.String("service", cfg.ServiceName),
-		zap.String("environment", cfg.Environement),
+		zap.String("environment", cfg.Environment),
 		zap.String("version", cfg.Version),
-	)
-}
+	}
 
-// GetLogger returns the singleton logger instance
-func GetLogger() *Logger {
-	once.Do(func() {
-		var err error
-		instance, err = NewLogger(true) // Production defaults to true
-		if err != nil {
-			panic("failed to initialize logger: " + err.Error())
-		}
-	})
-	return instance
-}
+	// Create directory if it doesn't exist
+	logDir := filepath.Join("log", cfg.Environment, cfg.Version)
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		panic("failed to create log directory: " + err.Error())
+	}
 
-func NewLogger(production bool) (*Logger, error) {
+	logPath := filepath.Join(logDir, "log.log")
+
+	// Configure the encoder
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:        "timestamp",
 		LevelKey:       "level",
@@ -111,32 +86,30 @@ func NewLogger(production bool) (*Logger, error) {
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
-	// Multi-sink setup
+	// Setup log rotation
+	fileWriter := zapcore.AddSync(&lumberjack.Logger{
+		Filename:   logPath,
+		MaxSize:    100, // megabytes
+		MaxBackups: 7,
+		MaxAge:     30, // days
+		Compress:   true,
+	})
+
+	// Priority levels for routing logs
 	highPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return lvl >= zapcore.ErrorLevel
 	})
+
 	lowPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return lvl < zapcore.ErrorLevel && lvl >= zapcore.InfoLevel
 	})
-	logPath := filepath.Join(
-		"log",
-		os.Getenv("ENVIRONMENT"),
-		os.Getenv("VERSION"),
-		"log",
-	)
 
-	// Core setup
+	// Multi-sink setup for different log levels
 	cores := []zapcore.Core{
-		// File output with rotation
+		// File output with rotation for all logs
 		zapcore.NewCore(
 			zapcore.NewJSONEncoder(encoderConfig),
-			zapcore.AddSync(&lumberjack.Logger{
-				Filename:   logPath,
-				MaxSize:    100, // MB
-				MaxBackups: 7,
-				MaxAge:     30, // days
-				Compress:   true,
-			}),
+			fileWriter,
 			zap.LevelEnablerFunc(func(lvl zapcore.Level) bool { return true }),
 		),
 		// Stderr for errors
@@ -145,7 +118,7 @@ func NewLogger(production bool) (*Logger, error) {
 			zapcore.AddSync(os.Stderr),
 			highPriority,
 		),
-		// Stdout for info
+		// Stdout for info and below
 		zapcore.NewCore(
 			zapcore.NewJSONEncoder(encoderConfig),
 			zapcore.AddSync(os.Stdout),
@@ -153,7 +126,8 @@ func NewLogger(production bool) (*Logger, error) {
 		),
 	}
 
-	logger := zap.New(
+	// Create the logger
+	zapLogger := zap.New(
 		zapcore.NewTee(cores...),
 		zap.AddCaller(),
 		zap.AddCallerSkip(1),
@@ -161,16 +135,38 @@ func NewLogger(production bool) (*Logger, error) {
 		zap.Fields(standardFields...),
 	)
 
-	return &Logger{logger}, nil
+	// Set the global instance
+	instance = &Logger{zapLogger}
 }
 
+// GetLogger returns the singleton logger instance, initializing if necessary
+func GetLogger() *Logger {
+	once.Do(func() {
+		// If the logger hasn't been initialized yet, create with defaults
+		if instance == nil {
+			defaultCfg := LogConfig{
+				Environment: "development",
+				Version:     "0.0.0",
+				ServiceName: "service",
+			}
+			InitLogger(defaultCfg)
+		}
+	})
+	return instance
+}
+
+// WithContext enhances logger with request context information
 func (l *Logger) WithContext(ctx context.Context) *Logger {
+	if ctx == nil {
+		return l
+	}
+
 	fields := []zap.Field{
 		zap.String("request_id", getStringFromContext(ctx, RequestIDKey)),
 		zap.String("correlation_id", getStringFromContext(ctx, CorrelationID)),
 	}
 
-	// Add goroutine ID
+	// Add goroutine ID for debugging concurrent issues
 	var buf [64]byte
 	n := runtime.Stack(buf[:], false)
 	fields = append(fields, zap.String("goroutine", strings.Fields(string(buf[:n]))[1]))
@@ -178,10 +174,12 @@ func (l *Logger) WithContext(ctx context.Context) *Logger {
 	return &Logger{l.Logger.With(fields...)}
 }
 
+// Shutdown flushes any buffered log entries
 func (l *Logger) Shutdown() error {
 	return l.Sync()
 }
 
+// Helper to extract string values from context
 func getStringFromContext(ctx context.Context, key string) string {
 	if val, ok := ctx.Value(key).(string); ok {
 		return val

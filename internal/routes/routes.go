@@ -13,7 +13,8 @@ import (
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	router := gin.Default()
 
-	router.Use(middleware.GinLoggingMiddleware(), gin.Recovery())
+	router.Use(middleware.LoggingMiddleware(), gin.Recovery())
+
 	// Initialize dependencies
 	userRepo := repository.NewUserRepository(db)
 	userService := service.NewUserService(userRepo)

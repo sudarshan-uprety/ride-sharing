@@ -24,9 +24,9 @@ type Config struct {
 		Expiry int // in hours
 	}
 	Log struct {
-		Environement string
-		Version      string
-		ServiceName  string
+		Environment string
+		Version     string
+		ServiceName string
 	}
 }
 
@@ -57,9 +57,9 @@ func Load() (*Config, error) {
 	}
 	cfg.JWT.Expiry = expiry
 
-	cfg.Log.Environement = getEnv("ENVIRONMENT", "Dev")
-	cfg.Log.Environement = getEnv("VERSION", "1.0.0")
-	cfg.Log.Environement = getEnv("SERVICE_NAME", "auth-service")
+	cfg.Log.Environment = getEnv("ENVIRONMENT", "Dev")
+	cfg.Log.Version = getEnv("VERSION", "1.0.0")
+	cfg.Log.ServiceName = getEnv("SERVICE_NAME", "auth-service")
 
 	return cfg, nil
 }

@@ -11,11 +11,13 @@ import (
 	"go.uber.org/zap"
 )
 
-func GinLoggingMiddleware() gin.HandlerFunc {
+// LoggingMiddleware is a gin middleware that logs request details
+// and adds request_id and correlation_id to both context and response headers
+func LoggingMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 
-		// Get or generate IDs
+		// Get or generate tracking IDs
 		requestID := c.GetHeader(logging.RequestIDKey)
 		if requestID == "" {
 			requestID = uuid.New().String()
@@ -26,13 +28,17 @@ func GinLoggingMiddleware() gin.HandlerFunc {
 			correlationID = uuid.New().String()
 		}
 
-		// Add to context and headers
+		// Add IDs to context and headers
 		ctx := context.WithValue(c.Request.Context(), logging.RequestIDKey, requestID)
 		ctx = context.WithValue(ctx, logging.CorrelationID, correlationID)
 		c.Request = c.Request.WithContext(ctx)
 
+		// Set response headers for tracking
 		c.Writer.Header().Set(logging.RequestIDKey, requestID)
 		c.Writer.Header().Set(logging.CorrelationID, correlationID)
+
+		// Get logger with request context
+		logger := logging.GetLogger().WithContext(ctx)
 
 		// Process request
 		c.Next()
@@ -45,9 +51,7 @@ func GinLoggingMiddleware() gin.HandlerFunc {
 			bodySize = 0
 		}
 
-		logger := logging.GetLogger().WithContext(ctx)
-
-		// Single log entry per request with all details
+		// Prepare standard log fields
 		fields := []zap.Field{
 			zap.Int("status", status),
 			zap.String("method", c.Request.Method),
@@ -59,8 +63,12 @@ func GinLoggingMiddleware() gin.HandlerFunc {
 			zap.Int("body_size", bodySize),
 		}
 
+		// Log based on response status code
 		switch {
 		case status >= 400 && status < 500:
+			if len(c.Errors) > 0 {
+				fields = append(fields, zap.String("error", c.Errors.String()))
+			}
 			logger.Warn("client error", fields...)
 		case status >= 500:
 			fields = append(fields, zap.String("error", c.Errors.String()))

@@ -19,8 +19,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
-	logging.Init(cfg.Log)
-	defer logging.Get().Shutdown()
+
+	logging.InitLogger(logging.LogConfig{
+		Environment: cfg.Log.Environment,
+		Version:     cfg.Log.Version,
+		ServiceName: cfg.Log.ServiceName,
+	})
+
 	// Initialize database
 	db, err := database.NewPostgresDB(database.DBConfig{
 		Host:     cfg.DB.Host,
