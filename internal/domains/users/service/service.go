@@ -5,17 +5,22 @@ import (
 	"ride-sharing/internal/domains/users/dto"
 	"ride-sharing/internal/domains/users/models"
 	"ride-sharing/internal/domains/users/repository"
+	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/errors"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
-	repo repository.UserRepository
+	repo         repository.UserRepository
+	tokenService *auth.TokenService
 }
 
-func NewUserService(repo repository.UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(repo repository.UserRepository, tokenService *auth.TokenService) *UserService {
+	return &UserService{
+		repo:         repo,
+		tokenService: tokenService,
+	}
 }
 
 func (s *UserService) Register(ctx context.Context, req dto.RegisterRequest) (*dto.UserResponse, *errors.AppError) {
@@ -49,7 +54,7 @@ func (s *UserService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 		Password: string(hashedPassword),
 		FullName: req.FullName,
 		Phone:    req.Phone,
-		Active:   true,
+		Active:   false,
 	}
 
 	if err := s.repo.Create(ctx, user); err != nil {
@@ -57,16 +62,44 @@ func (s *UserService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 	}
 
 	return &dto.UserResponse{
-		ID:        user.ID,
-		Email:     user.Email,
-		FullName:  user.FullName,
-		Phone:     user.Phone,
-		CreatedAt: user.CreatedAt,
+		ID:       user.ID,
+		Email:    user.Email,
+		FullName: user.FullName,
+		Phone:    user.Phone,
 	}, nil
 }
 
-func (s *UserService) Login(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, error) {
-	// Implementation would include JWT token generation
-	// Similar pattern to Register
-	return nil, nil
+func (s *UserService) Login(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, *errors.AppError) {
+	user, err := s.repo.GetByEmail(ctx, req.Email)
+	if err != nil {
+		return nil, errors.NewInternalError(err) // Wrap the error
+	}
+	if user == nil {
+		return nil, errors.NewNotFoundError("user not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		return nil, errors.NewUnauthorizedError("invalid credentials")
+	}
+
+	accessToken, err := s.tokenService.GenerateAccessToken(user.ID.String())
+	if err != nil {
+		return nil, errors.NewInternalError(err)
+	}
+
+	refreshToken, err := s.tokenService.GenerateRefreshToken(user.ID.String())
+	if err != nil {
+		return nil, errors.NewInternalError(err)
+	}
+
+	return &dto.LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User: dto.UserResponse{
+			ID:       user.ID,
+			Email:    user.Email,
+			FullName: user.FullName,
+			Phone:    user.Phone,
+		},
+	}, nil
 }

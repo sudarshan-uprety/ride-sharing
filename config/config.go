@@ -3,7 +3,6 @@ package config
 import (
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -20,8 +19,8 @@ type Config struct {
 		Port string
 	}
 	JWT struct {
-		Secret string
-		Expiry int // in hours
+		AccessSecret  string
+		RefreshSecret string
 	}
 	Log struct {
 		Environment string
@@ -50,12 +49,8 @@ func Load() (*Config, error) {
 	cfg.Server.Port = getEnv("PORT", "8080") // Using PORT instead of SERVER_PORT
 
 	// JWT configuration
-	cfg.JWT.Secret = getEnv("JWT_SECRET", "default-secret-key")
-	expiry, err := strconv.Atoi(getEnv("JWT_EXPIRY", "24"))
-	if err != nil {
-		return nil, err
-	}
-	cfg.JWT.Expiry = expiry
+	cfg.JWT.AccessSecret = getEnv("ACCESS_TOKEN_SECRET", "default-secret-key")
+	cfg.JWT.RefreshSecret = getEnv("REFRESH_TOKEN_SECRET", "default-secret-key")
 
 	cfg.Log.Environment = getEnv("ENVIRONMENT", "Dev")
 	cfg.Log.Version = getEnv("VERSION", "1.0.0")

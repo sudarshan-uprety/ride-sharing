@@ -4,10 +4,12 @@ import (
 	"log"
 	"ride-sharing/config"
 	"ride-sharing/internal/domains/users/models"
+	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/database"
 	"ride-sharing/internal/pkg/logging"
 	"ride-sharing/internal/pkg/validation"
 	"ride-sharing/internal/routes"
+	"time"
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -38,13 +40,21 @@ func main() {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
 
+	// Initialize token service
+	tokenService := auth.NewTokenService(
+		cfg.JWT.AccessSecret,
+		cfg.JWT.RefreshSecret,
+		time.Hour*6,    // Access token expires in 1 hour
+		time.Hour*24*7, // Refresh token expires in 1 week
+	)
+
 	// Auto-migrate models
 	if err := database.AutoMigrate(db, &models.User{}); err != nil {
 		log.Fatalf("failed to auto-migrate models: %v", err)
 	}
 
 	// Setup router
-	router := routes.SetupRouter(db)
+	router := routes.SetupRouter(db, tokenService)
 
 	// Register custom validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
