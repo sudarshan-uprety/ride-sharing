@@ -41,6 +41,8 @@ func ProcessValidationError(err error) map[string]string {
 				errors[jsonName] = "Must contain only letters and numbers"
 			case "e164":
 				errors[jsonName] = "Must be a valid phone number in E.164 format"
+			case "strongpassword":
+				errors[jsonName] = GetPasswordRules()
 			default:
 				errors[jsonName] = "Invalid value (" + tag + ")"
 			}
@@ -86,4 +88,30 @@ func toSnakeCase(camel string) string {
 		result.WriteRune(unicode.ToLower(char))
 	}
 	return result.String()
+}
+
+// RegisterCustomValidators adds all custom validators to the provided validator instance
+func RegisterCustomValidators(v *validator.Validate) error {
+	// Register strongPassword validator with proper error handling
+	if err := v.RegisterValidation("strongpassword", validateStrongPassword); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateStrongPassword(fl validator.FieldLevel) bool {
+	password := fl.Field().String()
+
+	// Optimized checks using regex for better performance
+	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
+	hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
+	hasDigit := regexp.MustCompile(`[0-9]`).MatchString(password)
+	hasSpecial := regexp.MustCompile(`[^a-zA-Z0-9]`).MatchString(password)
+
+	return len(password) >= 8 && hasUpper && hasLower && hasDigit && hasSpecial
+}
+
+// GetPasswordRules returns a description of password requirements for API docs/errors
+func GetPasswordRules() string {
+	return "Password must contain at least 8 characters including: 1 uppercase, 1 lowercase, 1 digit, and 1 special character"
 }

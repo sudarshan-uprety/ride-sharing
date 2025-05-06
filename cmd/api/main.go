@@ -5,7 +5,11 @@ import (
 	"ride-sharing/config"
 	"ride-sharing/internal/domains/users/models"
 	"ride-sharing/internal/pkg/database"
+	"ride-sharing/internal/pkg/validation"
 	"ride-sharing/internal/routes"
+
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 func main() {
@@ -34,6 +38,11 @@ func main() {
 
 	// Setup router
 	router := routes.SetupRouter(db)
+
+	// Register custom validators
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		validation.RegisterCustomValidators(v)
+	}
 
 	// Start server
 	log.Printf("server starting on port %s", cfg.Server.Port)

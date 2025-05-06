@@ -9,7 +9,7 @@ import (
 
 type RegisterRequest struct {
 	Email           string `json:"email" binding:"required,email"`
-	Password        string `json:"password" binding:"required,min=8"`
+	Password        string `json:"password" binding:"required,strongpassword"`
 	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=Password"`
 	FullName        string `json:"full_name" binding:"required"`
 	Phone           string `json:"phone" binding:"required,e164"`
