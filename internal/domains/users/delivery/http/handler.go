@@ -53,3 +53,14 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "login successful", res, nil)
 }
+
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	var req dto.ChangePasswordRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		details := validation.ProcessValidationError(err)
+		response.Error(c, errors.NewValidationError("invalid request body", details))
+	}
+
+	res, err := h.service.ChangePassword()
+}
