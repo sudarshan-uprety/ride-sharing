@@ -24,11 +24,18 @@ func SetupRouter(db *gorm.DB, tokenService *auth.TokenService) *gin.Engine {
 	// API versioning
 	api := router.Group("/api/v1")
 
-	// User routes
+	// Public user routes
 	userRoutes := api.Group("/users")
 	{
 		userRoutes.POST("/register", userHandler.Register)
 		userRoutes.POST("/login", userHandler.Login)
+	}
+
+	// Protected user routes
+	authRoutes := api.Group("/users")
+	authRoutes.Use(auth.AuthMiddleware("72bHG8VL0fRxXjsrfBx6o1Esz0Io0Kdb"))
+	{
+		authRoutes.POST("/change-password", userHandler.ChangePassword)
 	}
 
 	return router

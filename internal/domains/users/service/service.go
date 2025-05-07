@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"ride-sharing/internal/domains/users/dto"
 	"ride-sharing/internal/domains/users/models"
 	"ride-sharing/internal/domains/users/repository"
@@ -81,7 +80,7 @@ func (s *UserService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 		return nil, errors.NewNotFoundError("user not found")
 	}
 
-	match, err := password.CheckPassword(user.Password, req.Password)
+	match, err := password.CheckPassword(req.Password, user.Password)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
@@ -111,40 +110,39 @@ func (s *UserService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 	}, nil
 }
 
-func (s *UserService) ChangePassword(ctx context.Context, req dto.ChangePasswordRequest) (*dto.LoginResponse, *errors.AppError) {
-	user, err := s.repo.GetByEmail(ctx, req.Email)
+func (s *UserService) ChangePassword(ctx context.Context, userID string, req dto.ChangePasswordRequest) (*dto.LoginResponse, *errors.AppError) {
+	user, err := s.repo.GetByID(ctx, userID)
 	if err != nil {
-		return nil, errors.NewInternalError(err) // Wrap the error
+		return nil, errors.NewInternalError(err)
 	}
 	if user == nil {
 		return nil, errors.NewNotFoundError("user not found")
 	}
 
-	match, err := password.CheckPassword(user.Password, req.CurrentPassword)
+	match, err := password.CheckPassword(req.CurrentPassword, user.Password)
 	if err != nil {
-		return nil, errors.NewInternalError(fmt.Errorf("password verification failed: %w", err))
+		return nil, errors.NewInternalError(err)
 	}
 	if !match {
-		return nil, errors.NewUnauthorizedError("invalid password")
+		return nil, errors.NewUnauthorizedError("incorrect current password")
 	}
 
 	hashedPassword, err := password.HashPassword(req.NewPassword)
 	if err != nil {
-		return nil, errors.NewInternalError(fmt.Errorf("failed to hash password: %w", err))
-	}
-
-	now := time.Now()
-	success, err := s.repo.ChangePassword(ctx, user.ID, hashedPassword, &now)
-	if err != nil || !success {
-		return nil, errors.NewInternalError(fmt.Errorf("failed to update password: %w", err))
-	}
-
-	accessToken, err := s.tokenService.GenerateAccessToken(user.ID.String(), user.PasswordChangedAt)
-	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
 
-	refreshToken, err := s.tokenService.GenerateRefreshToken(user.ID.String(), user.PasswordChangedAt)
+	now := time.Now()
+	success, err := s.repo.ChangePassword(ctx, user, hashedPassword)
+	if err != nil || !success {
+		return nil, errors.NewInternalError(err)
+	}
+
+	accessToken, err := s.tokenService.GenerateAccessToken(user.ID.String(), &now)
+	if err != nil {
+		return nil, errors.NewInternalError(err)
+	}
+	refreshToken, err := s.tokenService.GenerateRefreshToken(user.ID.String(), &now)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}

@@ -14,6 +14,7 @@ type UserRepository interface {
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
 	ExistsByPhone(ctx context.Context, phone string) (bool, error)
 	ChangePassword(ctx context.Context, user *models.User, hashedPassword string) (bool, error)
+	GetByID(ctx context.Context, id string) (*models.User, error)
 }
 
 type userRepository struct {
@@ -74,4 +75,15 @@ func (r *userRepository) ChangePassword(ctx context.Context, user *models.User, 
 	}
 
 	return true, nil
+}
+
+func (r *userRepository) GetByID(ctx context.Context, id string) (*models.User, error) {
+	var user models.User
+	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
 }

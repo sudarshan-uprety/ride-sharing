@@ -60,7 +60,20 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		details := validation.ProcessValidationError(err)
 		response.Error(c, errors.NewValidationError("invalid request body", details))
+		return
 	}
 
-	res, err := h.service.ChangePassword()
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Error(c, errors.NewUnauthorizedError("user ID not found in context"))
+		return
+	}
+
+	res, err := h.service.ChangePassword(c.Request.Context(), userID.(string), req)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, "password changed successfully", res, nil)
 }
