@@ -48,7 +48,7 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 
 		claims, err := ValidateToken(tokenStr, secret)
 		if err != nil {
-			log.Println("ERROR IS", err)
+			log.Println("ERROR IS-----------------------------------------------", err)
 			response.Error(c, errors.NewUnauthorizedError("invalid or expired token"))
 			c.Abort()
 			return

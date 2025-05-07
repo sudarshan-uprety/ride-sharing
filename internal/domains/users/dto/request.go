@@ -33,7 +33,7 @@ type LoginResponse struct {
 }
 
 type ChangePasswordRequest struct {
-	CurrentPassword string `json:"current_password" binding:"required, strongpassword"`
-	NewPassword     string `json:"new_password" binding:"required, strongpassword"`
-	ConfirmPassword string `json:"confirm_password" binding:"required, ,eqfield=NewPassword"`
+	CurrentPassword string `json:"current_password" binding:"required,strongpassword"`
+	NewPassword     string `json:"new_password" binding:"required,strongpassword"`
+	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=NewPassword"`
 }

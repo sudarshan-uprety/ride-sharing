@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -24,7 +23,6 @@ func NewTokenService(accessSecret, refreshSecret string, accessExpiry, refreshEx
 }
 
 func (s *TokenService) GenerateAccessToken(userID string, passwordChangedDT *time.Time) (string, error) {
-	log.Println("GENERATE TOKEN SECRET IS: ", s.accessSecret)
 	return s.generateToken(userID, s.accessSecret, s.accessExpiry, passwordChangedDT)
 }
 

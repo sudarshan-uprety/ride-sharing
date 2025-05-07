@@ -124,7 +124,7 @@ func (s *UserService) ChangePassword(ctx context.Context, userID string, req dto
 		return nil, errors.NewInternalError(err)
 	}
 	if !match {
-		return nil, errors.NewUnauthorizedError("incorrect current password")
+		return nil, errors.NewVerificationError("incorrect current password")
 	}
 
 	hashedPassword, err := password.HashPassword(req.NewPassword)

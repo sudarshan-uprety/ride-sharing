@@ -9,6 +9,7 @@ type ErrorType string
 
 const (
 	ErrorTypeValidation   ErrorType = "VALIDATION_ERROR"
+	ErrorTypeVerification ErrorType = "VERIFICATION_ERROR"
 	ErrorTypeConflict     ErrorType = "CONFLICT_ERROR"
 	ErrorTypeNotFound     ErrorType = "NOT_FOUND_ERROR"
 	ErrorTypeUnauthorized ErrorType = "UNAUTHORIZED_ERROR"
@@ -39,6 +40,13 @@ func NewValidationError(message string, details any) *AppError {
 		Type:    ErrorTypeValidation,
 		Message: message,
 		Details: details,
+	}
+}
+
+func NewVerificationError(message string) *AppError {
+	return &AppError{
+		Type:    ErrorTypeVerification,
+		Message: message,
 	}
 }
 
@@ -90,6 +98,8 @@ func HTTPStatusFromErrorType(t ErrorType) int {
 		return http.StatusUnauthorized
 	case ErrorTypeForbidden:
 		return http.StatusForbidden
+	case ErrorTypeVerification:
+		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
 	}
