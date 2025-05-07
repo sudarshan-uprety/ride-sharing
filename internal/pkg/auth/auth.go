@@ -2,7 +2,6 @@ package auth
 
 import (
 	"fmt"
-	"log"
 	"ride-sharing/internal/pkg/errors"
 	"ride-sharing/internal/pkg/response"
 	"strings"
@@ -12,12 +11,14 @@ import (
 )
 
 type Claims struct {
-	UserID string `json:"sub"`
+	UserID    string `json:"sub"`
+	TokenType string `json:"typ"`
 	jwt.RegisteredClaims
 }
 
-func ValidateToken(tokenString, secret string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+func ValidateToken(tokenStr string, secret string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		// Validate the signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -48,8 +49,12 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 
 		claims, err := ValidateToken(tokenStr, secret)
 		if err != nil {
-			log.Println("ERROR IS-----------------------------------------------", err)
 			response.Error(c, errors.NewUnauthorizedError("invalid or expired token"))
+			c.Abort()
+			return
+		}
+		if claims.TokenType != "access" {
+			response.Error(c, errors.NewUnauthorizedError("invalid token type: access token required"))
 			c.Abort()
 			return
 		}

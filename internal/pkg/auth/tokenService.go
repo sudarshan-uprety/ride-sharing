@@ -13,6 +13,11 @@ type TokenService struct {
 	refreshExpiry time.Duration
 }
 
+const (
+	TokenTypeAccess  = "access"
+	TokenTypeRefresh = "refresh"
+)
+
 func NewTokenService(accessSecret, refreshSecret string, accessExpiry, refreshExpiry time.Duration) *TokenService {
 	return &TokenService{
 		accessSecret:  accessSecret,
@@ -23,18 +28,19 @@ func NewTokenService(accessSecret, refreshSecret string, accessExpiry, refreshEx
 }
 
 func (s *TokenService) GenerateAccessToken(userID string, passwordChangedDT *time.Time) (string, error) {
-	return s.generateToken(userID, s.accessSecret, s.accessExpiry, passwordChangedDT)
+	return s.generateToken(userID, s.accessSecret, s.accessExpiry, passwordChangedDT, TokenTypeAccess)
 }
 
 func (s *TokenService) GenerateRefreshToken(userID string, passwordChangedDT *time.Time) (string, error) {
-	return s.generateToken(userID, s.refreshSecret, s.refreshExpiry, passwordChangedDT)
+	return s.generateToken(userID, s.refreshSecret, s.refreshExpiry, passwordChangedDT, TokenTypeRefresh)
 }
 
-func (s *TokenService) generateToken(userID, secret string, expiry time.Duration, passwordChangedDT *time.Time) (string, error) {
+func (s *TokenService) generateToken(userID, secret string, expiry time.Duration, passwordChangedDT *time.Time, tokenType string) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": userID,
 		"exp": time.Now().Add(expiry).Unix(),
 		"iat": time.Now().Unix(),
+		"typ": tokenType,
 		"pca": passwordChangedDT.Unix(),
 	}
 
