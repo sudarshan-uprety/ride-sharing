@@ -1,10 +1,27 @@
 package auth
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
+
+type UserType string
+
+const (
+	UserTypeAdmin UserType = "admin"
+	UserTypeUser  UserType = "user"
+	UserTypeRider UserType = "rider"
+)
+
+func (u UserType) IsValid() bool {
+	switch u {
+	case UserTypeAdmin, UserTypeUser, UserTypeRider:
+		return true
+	}
+	return false
+}
 
 type TokenService struct {
 	accessSecret  string
@@ -27,21 +44,27 @@ func NewTokenService(accessSecret, refreshSecret string, accessExpiry, refreshEx
 	}
 }
 
-func (s *TokenService) GenerateAccessToken(userID string, passwordChangedDT *time.Time) (string, error) {
-	return s.generateToken(userID, s.accessSecret, s.accessExpiry, passwordChangedDT, TokenTypeAccess)
+func (s *TokenService) GenerateAccessToken(userID string, userType UserType) (string, error) {
+	if !userType.IsValid() {
+		return "", fmt.Errorf("invalid user type: %s", userType)
+	}
+	return s.generateToken(userID, s.accessSecret, s.accessExpiry, TokenTypeAccess, userType)
 }
 
-func (s *TokenService) GenerateRefreshToken(userID string, passwordChangedDT *time.Time) (string, error) {
-	return s.generateToken(userID, s.refreshSecret, s.refreshExpiry, passwordChangedDT, TokenTypeRefresh)
+func (s *TokenService) GenerateRefreshToken(userID string, userType UserType) (string, error) {
+	if !userType.IsValid() {
+		return "", fmt.Errorf("invalid user type: %s", userType)
+	}
+	return s.generateToken(userID, s.refreshSecret, s.refreshExpiry, TokenTypeRefresh, userType)
 }
 
-func (s *TokenService) generateToken(userID, secret string, expiry time.Duration, passwordChangedDT *time.Time, tokenType string) (string, error) {
+func (s *TokenService) generateToken(userID, secret string, expiry time.Duration, tokenType string, userType UserType) (string, error) {
 	claims := jwt.MapClaims{
-		"sub": userID,
-		"exp": time.Now().Add(expiry).Unix(),
-		"iat": time.Now().Unix(),
-		"typ": tokenType,
-		"pca": passwordChangedDT.Unix(),
+		"sub":  userID,
+		"exp":  time.Now().Add(expiry).Unix(),
+		"iat":  time.Now().Unix(),
+		"typ":  tokenType,
+		"user": string(userType),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
