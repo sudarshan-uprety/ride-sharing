@@ -2,6 +2,7 @@ package routes
 
 import (
 	"ride-sharing/internal/domains/users/delivery/http"
+	"ride-sharing/internal/domains/users/provider"
 	"ride-sharing/internal/domains/users/repository"
 	"ride-sharing/internal/domains/users/service"
 	"ride-sharing/internal/pkg/auth"
@@ -18,8 +19,14 @@ func SetupRouter(db *gorm.DB, tokenService *auth.TokenService) *gin.Engine {
 
 	// Initialize dependencies
 	userRepo := repository.NewUserRepository(db)
+	// Create user providers
+	userProviders := map[auth.UserType]auth.UserProvider{
+		auth.UserTypeUser: provider.NewUserProvider(userRepo),
+	}
 	userService := service.NewUserService(userRepo, tokenService)
 	userHandler := http.NewUserHandler(userService)
+
+	authMiddleware := middleware.NewAuthMiddleware(tokenService, userProviders)
 
 	// API versioning
 	api := router.Group("/api/v1")
@@ -33,7 +40,7 @@ func SetupRouter(db *gorm.DB, tokenService *auth.TokenService) *gin.Engine {
 
 	// Protected user routes
 	authRoutes := api.Group("/users")
-	authRoutes.Use(auth.AuthMiddleware("72bHG8VL0fRxXjsrfBx6o1Esz0Io0Kdb"))
+	authRoutes.Use(authMiddleware.Authenticate(), middleware.RequireUserType(auth.UserTypeUser))
 	{
 		authRoutes.POST("/change-password", userHandler.ChangePassword)
 	}

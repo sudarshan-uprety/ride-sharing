@@ -7,22 +7,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type UserType string
-
-const (
-	UserTypeAdmin UserType = "admin"
-	UserTypeUser  UserType = "user"
-	UserTypeRider UserType = "rider"
-)
-
-func (u UserType) IsValid() bool {
-	switch u {
-	case UserTypeAdmin, UserTypeUser, UserTypeRider:
-		return true
-	}
-	return false
-}
-
 type TokenClaims struct {
 	UserID    string   `json:"sub"`
 	TokenType string   `json:"typ"`
@@ -76,4 +60,34 @@ func (s *TokenService) generateToken(userID, secret string, expiry time.Duration
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
+}
+
+func (s *TokenService) ValidateAccessToken(tokenString string) (*TokenClaims, error) {
+	return s.validateToken(tokenString, s.accessSecret, TokenTypeAccess)
+}
+
+func (s *TokenService) ValidateRefreshToken(tokenString string) (*TokenClaims, error) {
+	return s.validateToken(tokenString, s.refreshSecret, TokenTypeRefresh)
+}
+
+func (s *TokenService) validateToken(tokenString, secret, expectedType string) (*TokenClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(secret), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*TokenClaims); ok && token.Valid {
+		if claims.TokenType != expectedType {
+			return nil, fmt.Errorf("invalid token type: expected %s", expectedType)
+		}
+		return claims, nil
+	}
+
+	return nil, fmt.Errorf("invalid token")
 }
