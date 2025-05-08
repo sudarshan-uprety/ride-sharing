@@ -23,6 +23,13 @@ func (u UserType) IsValid() bool {
 	return false
 }
 
+type TokenClaims struct {
+	UserID    string   `json:"sub"`
+	TokenType string   `json:"typ"`
+	UserType  UserType `json:"user"`
+	jwt.RegisteredClaims
+}
+
 type TokenService struct {
 	accessSecret  string
 	refreshSecret string
