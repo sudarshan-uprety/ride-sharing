@@ -11,7 +11,7 @@ type TokenClaims struct {
 	UserID            string   `json:"sub"`
 	TokenType         string   `json:"typ"`
 	UserType          UserType `json:"user"`
-	PasswordChangedAt string   `json:"lpc"`
+	PasswordChangedAt int64    `json:"lpc"`
 	jwt.RegisteredClaims
 }
 
@@ -57,7 +57,7 @@ func (s *TokenService) generateToken(userID, secret string, expiry time.Duration
 		"iat":  time.Now().Unix(),
 		"typ":  tokenType,
 		"user": string(userType),
-		"lpc":  passwordChangedAt.UTC().Format(time.RFC3339Nano), // lpc stands for last password changed
+		"lpc":  passwordChangedAt.UTC().UnixNano(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
