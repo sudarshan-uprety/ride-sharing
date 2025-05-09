@@ -48,7 +48,6 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-
 		provider, exists := m.userProviders[claims.UserType]
 		if !exists {
 			response.Error(c, errors.NewUnauthorizedError("invalid user type"))

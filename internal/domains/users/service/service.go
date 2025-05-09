@@ -88,12 +88,12 @@ func (s *UserService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 		return nil, errors.NewUnauthorizedError("invalid credentials")
 	}
 
-	accessToken, err := s.tokenService.GenerateAccessToken(user.ID.String(), auth.UserTypeUser)
+	accessToken, err := s.tokenService.GenerateAccessToken(user.ID.String(), auth.UserTypeUser, user.PasswordChangedAt)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
 
-	refreshToken, err := s.tokenService.GenerateRefreshToken(user.ID.String(), auth.UserTypeUser)
+	refreshToken, err := s.tokenService.GenerateRefreshToken(user.ID.String(), auth.UserTypeUser, user.PasswordChangedAt)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
@@ -137,11 +137,11 @@ func (s *UserService) ChangePassword(ctx context.Context, userID string, req dto
 		return nil, errors.NewInternalError(err)
 	}
 
-	accessToken, err := s.tokenService.GenerateAccessToken(user.ID.String(), auth.UserTypeUser)
+	accessToken, err := s.tokenService.GenerateAccessToken(user.ID.String(), auth.UserTypeUser, user.PasswordChangedAt)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
-	refreshToken, err := s.tokenService.GenerateRefreshToken(user.ID.String(), auth.UserTypeUser)
+	refreshToken, err := s.tokenService.GenerateRefreshToken(user.ID.String(), auth.UserTypeUser, user.PasswordChangedAt)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
