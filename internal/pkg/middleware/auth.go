@@ -1,8 +1,11 @@
 package middleware
 
 import (
+	"fmt"
 	"strings"
+	"time"
 
+	"ride-sharing/internal/domains/users/models"
 	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/errors"
 	"ride-sharing/internal/pkg/response"
@@ -64,6 +67,27 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 
 		if user == nil {
 			response.Error(c, errors.NewUnauthorizedError("user not found"))
+			c.Abort()
+			return
+		}
+
+		userData, ok := user.(*models.User)
+		if !ok {
+			response.Error(c, errors.NewInternalError(fmt.Errorf("user is not of expected type *models.User")))
+			c.Abort()
+			return
+		}
+
+		// Parse claims.PasswordChangedAt (from token) to time.Time
+		tokenPasswordChangedAt, err := time.Parse(time.RFC3339Nano, claims.PasswordChangedAt)
+		if err != nil {
+			response.Error(c, errors.NewInternalError(fmt.Errorf("invalid date format for password change in token: %v", err)))
+			c.Abort()
+			return
+		}
+		// Compare PasswordChangedAt values
+		if tokenPasswordChangedAt.Before(*userData.PasswordChangedAt) {
+			response.Error(c, errors.NewUnauthorizedError("token is no longer valid due to password change"))
 			c.Abort()
 			return
 		}
