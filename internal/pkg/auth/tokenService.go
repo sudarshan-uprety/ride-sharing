@@ -52,7 +52,7 @@ func (s *TokenService) GenerateRefreshToken(userID string, userType UserType, pa
 
 func (s *TokenService) generateToken(userID, secret string, expiry time.Duration, tokenType string, userType UserType, passwordChangedAt *time.Time) (string, error) {
 	claims := jwt.MapClaims{
-		"sub":  userID,
+		"sub":  "12345",
 		"exp":  time.Now().Add(expiry).Unix(),
 		"iat":  time.Now().Unix(),
 		"typ":  tokenType,

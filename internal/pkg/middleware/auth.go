@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -51,6 +52,7 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
 		provider, exists := m.userProviders[claims.UserType]
 		if !exists {
 			response.Error(c, errors.NewUnauthorizedError("invalid user type"))
@@ -58,22 +60,24 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		user, err := provider.GetByID(c.Request.Context(), claims.UserID)
+		user, err := provider.GetByID(c.Request.Context(), claims.UserID, claims.UserType)
 		if err != nil {
-			response.Error(c, errors.NewInternalError(err))
-			c.Abort()
-			return
-		}
+			log.Println("HERE----------------------------------------------------------", err)
 
-		if user == nil {
-			response.Error(c, errors.NewUnauthorizedError("user not found"))
+			// Only wrap unknown errors
+			appErr, ok := err.(*errors.AppError)
+			if !ok {
+				appErr = errors.NewInternalError(err)
+			}
+
+			response.Error(c, appErr)
 			c.Abort()
 			return
 		}
 
 		userData, ok := user.(*models.User)
 		if !ok {
-			response.Error(c, errors.NewInternalError(fmt.Errorf("user is not of expected type *models.User")))
+			response.Error(c, errors.NewInternalError(fmt.Errorf("user is not of expected type")))
 			c.Abort()
 			return
 		}

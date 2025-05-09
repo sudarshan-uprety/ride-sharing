@@ -19,5 +19,5 @@ func (u UserType) IsValid() bool {
 }
 
 type UserProvider interface {
-	GetByID(ctx context.Context, id string) (interface{}, error)
+	GetByID(ctx context.Context, id string, userType UserType) (interface{}, error)
 }

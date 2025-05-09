@@ -2,11 +2,11 @@ package routes
 
 import (
 	"ride-sharing/internal/domains/users/delivery/http"
-	"ride-sharing/internal/domains/users/provider"
 	"ride-sharing/internal/domains/users/repository"
 	"ride-sharing/internal/domains/users/service"
 	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/middleware"
+	"ride-sharing/internal/pkg/provider"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"ride-sharing/internal/domains/users/models"
+	customErrors "ride-sharing/internal/pkg/errors"
 	"time"
 
 	"gorm.io/gorm"
@@ -79,11 +81,13 @@ func (r *userRepository) ChangePassword(ctx context.Context, user *models.User, 
 
 func (r *userRepository) GetByID(ctx context.Context, id string) (*models.User, error) {
 	var user models.User
-	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&user).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, customErrors.NewNotFoundError("user not found")
 		}
-		return nil, err
+		return nil, customErrors.NewInternalError(err)
 	}
 	return &user, nil
 }
