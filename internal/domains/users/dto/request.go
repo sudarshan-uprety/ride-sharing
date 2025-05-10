@@ -37,3 +37,12 @@ type ChangePasswordRequest struct {
 	NewPassword     string `json:"new_password" binding:"required,strongpassword"`
 	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=NewPassword"`
 }
+
+type ForgetPasswordRequest struct {
+	Email string `json:"email" binding:"required"`
+}
+
+type ForgetPasswordConfirmRequest struct {
+	Email string `json:"email" binding:"required"`
+	OTP   string `json:"otp" binding:"required,regexp=^[0-9]{6}$"`
+}

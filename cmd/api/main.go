@@ -7,6 +7,7 @@ import (
 	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/database"
 	"ride-sharing/internal/pkg/logging"
+	"ride-sharing/internal/pkg/redis"
 	"ride-sharing/internal/pkg/validation"
 	"ride-sharing/internal/routes"
 	"time"
@@ -39,6 +40,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
+
+	// Initialize Redis
+	redisClient := redis.New(cfg)
+	defer redisClient.Close()
 
 	// Initialize token service
 	tokenService := auth.NewTokenService(

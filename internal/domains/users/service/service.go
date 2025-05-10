@@ -7,6 +7,7 @@ import (
 	"ride-sharing/internal/domains/users/repository"
 	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/errors"
+	"ride-sharing/internal/pkg/otp"
 	"ride-sharing/internal/pkg/password"
 	"time"
 )
@@ -156,4 +157,21 @@ func (s *UserService) ChangePassword(ctx context.Context, userID string, req dto
 			Phone:    user.Phone,
 		},
 	}, nil
+}
+
+func (s *UserService) ForgetPassword(ctx context.Context, req dto.ForgetPasswordRequest) (bool, *errors.AppError) {
+	user, err := s.repo.GetByEmail(ctx, req.Email)
+	if err != nil {
+		return false, errors.NewInternalError(err)
+	}
+	if user == nil {
+		return false, errors.NewNotFoundError("user not found")
+	}
+	return true, nil
+
+	otp := otp.GenerateOTP()
+
+	if err := s.redisStore.SetOTP(ctx, user.Email, otp, 2*time.Minute); err != nil {
+		return false, errors.NewInternalError(err)
+	}
 }

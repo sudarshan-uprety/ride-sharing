@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -14,6 +15,12 @@ type Config struct {
 		User     string
 		Password string
 		Name     string
+	}
+	Redis struct {
+		Host     string
+		Port     string
+		Password string
+		DB       int
 	}
 	Server struct {
 		Port string
@@ -45,6 +52,12 @@ func Load() (*Config, error) {
 	cfg.DB.Password = getEnv("DB_PASSWORD", "postgres")
 	cfg.DB.Name = getEnv("DB_NAME", "name")
 
+	// Redis configuration
+	cfg.Redis.Host = getEnv("REDIS_HOST", "localhost")
+	cfg.Redis.Port = getEnv("REDIS_PORT", "6379")
+	cfg.Redis.Password = getEnv("REDIS_PASSWORD", "")
+	cfg.Redis.DB = getEnvAsInt("REDIS_DB", 0)
+
 	// Server configuration
 	cfg.Server.Port = getEnv("PORT", "8080") // Using PORT instead of SERVER_PORT
 
@@ -62,6 +75,15 @@ func Load() (*Config, error) {
 func getEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvAsInt(key string, defaultValue int) int {
+	if value, exists := os.LookupEnv(key); exists {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
 	}
 	return defaultValue
 }
