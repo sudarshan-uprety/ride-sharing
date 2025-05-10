@@ -45,6 +45,7 @@ func main() {
 	redisClient := redis.New(cfg)
 	defer redisClient.Close()
 
+	otpStore := redis.NewOTPStore(redisClient)
 	// Initialize token service
 	tokenService := auth.NewTokenService(
 		cfg.JWT.AccessSecret,
@@ -59,7 +60,7 @@ func main() {
 	}
 
 	// Setup router
-	router := routes.SetupRouter(db, tokenService)
+	router := routes.SetupRouter(db, tokenService, otpStore)
 
 	// Register custom validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {

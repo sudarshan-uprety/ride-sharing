@@ -92,6 +92,5 @@ func (h *UserHandler) ForgetPassword(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusCreated, "user registered successfully", res, nil)
-
+	response.Success(c, http.StatusAccepted, "OTP sent to user email", res, nil)
 }

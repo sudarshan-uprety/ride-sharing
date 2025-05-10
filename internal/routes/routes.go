@@ -7,12 +7,13 @@ import (
 	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/middleware"
 	"ride-sharing/internal/pkg/provider"
+	"ride-sharing/internal/pkg/redis"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func SetupRouter(db *gorm.DB, tokenService *auth.TokenService) *gin.Engine {
+func SetupRouter(db *gorm.DB, tokenService *auth.TokenService, otpStore *redis.OTPStore) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(middleware.LoggingMiddleware(), gin.Recovery())
@@ -23,7 +24,7 @@ func SetupRouter(db *gorm.DB, tokenService *auth.TokenService) *gin.Engine {
 	userProviders := map[auth.UserType]auth.UserProvider{
 		auth.UserTypeUser: provider.NewUserProvider(userRepo),
 	}
-	userService := service.NewUserService(userRepo, tokenService)
+	userService := service.NewUserService(userRepo, tokenService, otpStore)
 	userHandler := http.NewUserHandler(userService)
 
 	authMiddleware := middleware.NewAuthMiddleware(tokenService, userProviders)

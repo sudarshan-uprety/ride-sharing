@@ -2,51 +2,55 @@ package service
 
 import (
 	"context"
+	"errors"
 	"ride-sharing/internal/domains/users/dto"
 	"ride-sharing/internal/domains/users/models"
 	"ride-sharing/internal/domains/users/repository"
 	"ride-sharing/internal/pkg/auth"
-	"ride-sharing/internal/pkg/errors"
+	customError "ride-sharing/internal/pkg/errors"
 	"ride-sharing/internal/pkg/otp"
 	"ride-sharing/internal/pkg/password"
+	"ride-sharing/internal/pkg/redis"
 	"time"
 )
 
 type UserService struct {
 	repo         repository.UserRepository
 	tokenService *auth.TokenService
+	OTPStore     *redis.OTPStore
 }
 
-func NewUserService(repo repository.UserRepository, tokenService *auth.TokenService) *UserService {
+func NewUserService(repo repository.UserRepository, tokenService *auth.TokenService, otpStore *redis.OTPStore) *UserService {
 	return &UserService{
 		repo:         repo,
 		tokenService: tokenService,
+		OTPStore:     otpStore,
 	}
 }
 
-func (s *UserService) Register(ctx context.Context, req dto.RegisterRequest) (*dto.UserResponse, *errors.AppError) {
+func (s *UserService) Register(ctx context.Context, req dto.RegisterRequest) (*dto.UserResponse, *customError.AppError) {
 	// Check if email exists
 	exists, err := s.repo.ExistsByEmail(ctx, req.Email)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 	if exists {
-		return nil, errors.NewConflictError("email already exists")
+		return nil, customError.NewConflictError("email already exists")
 	}
 
 	// Check if phone exists
 	exists, err = s.repo.ExistsByPhone(ctx, req.Phone)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 	if exists {
-		return nil, errors.NewConflictError("phone number already exists")
+		return nil, customError.NewConflictError("phone number already exists")
 	}
 
 	// Hash password
 	hashedPassword, err := password.HashPassword(req.Password)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 
 	// Create user
@@ -61,7 +65,7 @@ func (s *UserService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 	}
 
 	if err := s.repo.Create(ctx, user); err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 
 	return &dto.UserResponse{
@@ -72,31 +76,31 @@ func (s *UserService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 	}, nil
 }
 
-func (s *UserService) Login(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, *errors.AppError) {
+func (s *UserService) Login(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, *customError.AppError) {
 	user, err := s.repo.GetByEmail(ctx, req.Email)
 	if err != nil {
-		return nil, errors.NewInternalError(err) // Wrap the error
+		return nil, customError.NewInternalError(err) // Wrap the error
 	}
 	if user == nil {
-		return nil, errors.NewNotFoundError("user not found")
+		return nil, customError.NewNotFoundError("user not found")
 	}
 
 	match, err := password.CheckPassword(req.Password, user.Password)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 	if !match {
-		return nil, errors.NewUnauthorizedError("invalid credentials")
+		return nil, customError.NewUnauthorizedError("invalid credentials")
 	}
 
 	accessToken, err := s.tokenService.GenerateAccessToken(user.ID.String(), auth.UserTypeUser, user.PasswordChangedAt)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 
 	refreshToken, err := s.tokenService.GenerateRefreshToken(user.ID.String(), auth.UserTypeUser, user.PasswordChangedAt)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 
 	return &dto.LoginResponse{
@@ -111,40 +115,40 @@ func (s *UserService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 	}, nil
 }
 
-func (s *UserService) ChangePassword(ctx context.Context, userID string, req dto.ChangePasswordRequest) (*dto.LoginResponse, *errors.AppError) {
+func (s *UserService) ChangePassword(ctx context.Context, userID string, req dto.ChangePasswordRequest) (*dto.LoginResponse, *customError.AppError) {
 	user, err := s.repo.GetByID(ctx, userID)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 	if user == nil {
-		return nil, errors.NewNotFoundError("user not found")
+		return nil, customError.NewNotFoundError("user not found")
 	}
 
 	match, err := password.CheckPassword(req.CurrentPassword, user.Password)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 	if !match {
-		return nil, errors.NewVerificationError("incorrect current password")
+		return nil, customError.NewVerificationError("incorrect current password")
 	}
 
 	hashedPassword, err := password.HashPassword(req.NewPassword)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 
 	success, err := s.repo.ChangePassword(ctx, user, hashedPassword)
 	if err != nil || !success {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 
 	accessToken, err := s.tokenService.GenerateAccessToken(user.ID.String(), auth.UserTypeUser, user.PasswordChangedAt)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 	refreshToken, err := s.tokenService.GenerateRefreshToken(user.ID.String(), auth.UserTypeUser, user.PasswordChangedAt)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, customError.NewInternalError(err)
 	}
 
 	return &dto.LoginResponse{
@@ -159,15 +163,25 @@ func (s *UserService) ChangePassword(ctx context.Context, userID string, req dto
 	}, nil
 }
 
-func (s *UserService) ForgetPassword(ctx context.Context, req dto.ForgetPasswordRequest) (bool, *errors.AppError) {
+func (s *UserService) ForgetPassword(ctx context.Context, req dto.ForgetPasswordRequest) (bool, *customError.AppError) {
 	user, err := s.repo.GetByEmail(ctx, req.Email)
 	if err != nil {
-		return false, errors.NewInternalError(err)
+		return false, customError.NewInternalError(err)
 	}
 	if user == nil {
-		return false, errors.NewNotFoundError("user not found")
+		return false, customError.NewNotFoundError("user not found")
 	}
 
 	otp := otp.GenerateOTP()
+
+	if err := s.OTPStore.SetOTP(ctx, user.Email, otp); err != nil {
+		var conflictErr *customError.AppError
+		if errors.As(err, &conflictErr) && conflictErr.Type == customError.ErrorTypeConflict {
+			// Return the conflict error directly
+			return false, conflictErr
+		}
+		return false, customError.NewInternalError(err)
+	}
+	// remaining: send email functionality
 	return true, nil
 }
