@@ -79,12 +79,19 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 }
 
 func (h *UserHandler) ForgetPassword(c *gin.Context) {
-	var req dto.ChangePasswordRequest
+	var req dto.ForgetPasswordRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		details := validation.ProcessValidationError(err)
 		response.Error(c, errors.NewValidationError("invalid request body", details))
 		return
 	}
+	res, err := h.service.ForgetPassword(c.Request.Context(), req)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusCreated, "user registered successfully", res, nil)
 
 }

@@ -36,6 +36,7 @@ func SetupRouter(db *gorm.DB, tokenService *auth.TokenService) *gin.Engine {
 	{
 		userRoutes.POST("/register", userHandler.Register)
 		userRoutes.POST("/login", userHandler.Login)
+		userRoutes.POST("/forget-password", userHandler.ForgetPassword)
 	}
 
 	// Protected user routes

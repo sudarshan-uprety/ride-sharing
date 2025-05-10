@@ -1,9 +1,9 @@
 package otp
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"math/rand"
 )
 
 func GenerateOTP() string {

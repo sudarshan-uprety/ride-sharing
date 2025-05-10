@@ -167,11 +167,7 @@ func (s *UserService) ForgetPassword(ctx context.Context, req dto.ForgetPassword
 	if user == nil {
 		return false, errors.NewNotFoundError("user not found")
 	}
-	return true, nil
 
 	otp := otp.GenerateOTP()
-
-	if err := s.redisStore.SetOTP(ctx, user.Email, otp, 2*time.Minute); err != nil {
-		return false, errors.NewInternalError(err)
-	}
+	return true, nil
 }
