@@ -38,6 +38,8 @@ func SetupRouter(db *gorm.DB, tokenService *auth.TokenService, otpStore *redis.O
 		userRoutes.POST("/register", userHandler.Register)
 		userRoutes.POST("/login", userHandler.Login)
 		userRoutes.POST("/forget-password", userHandler.ForgetPassword)
+		userRoutes.POST("/verify-reset", userHandler.VerifyForgetPassword)
+
 	}
 
 	// Protected user routes

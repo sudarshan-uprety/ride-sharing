@@ -185,3 +185,33 @@ func (s *UserService) ForgetPassword(ctx context.Context, req dto.ForgetPassword
 	// remaining: send email functionality
 	return true, nil
 }
+
+func (s *UserService) VerifyForgetPassword(ctx context.Context, req dto.ForgetPasswordVerifyRequest) (bool, *customError.AppError) {
+	user, err := s.repo.GetByEmail(ctx, req.Email)
+	if err != nil {
+		return false, customError.NewInternalError(err)
+	}
+	if user == nil {
+		return false, customError.NewNotFoundError("user not found")
+	}
+
+	valid, err := s.OTPStore.VerifyAndDeleteOTP(ctx, req.Email, req.Otp)
+	if err != nil {
+		return false, customError.NewInternalError(err)
+	}
+	if !valid {
+		return false, customError.NewVerificationError("invalid or expired OTP")
+	}
+
+	hashedPassword, err := password.HashPassword(req.Password)
+	if err != nil {
+		return false, customError.NewInternalError(err)
+	}
+
+	success, err := s.repo.ChangePassword(ctx, user, hashedPassword)
+	if err != nil || !success {
+		return false, customError.NewInternalError(err)
+	}
+	// Remaining: send email
+	return true, nil
+}

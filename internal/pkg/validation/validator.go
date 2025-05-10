@@ -43,6 +43,8 @@ func ProcessValidationError(err error) map[string]string {
 				errors[jsonName] = "Must be a valid phone number in E.164 format"
 			case "strongpassword":
 				errors[jsonName] = GetPasswordRules()
+			case "otpvalidation":
+				errors[jsonName] = GetOTPRules()
 			default:
 				errors[jsonName] = "Invalid value (" + tag + ")"
 			}
@@ -96,6 +98,9 @@ func RegisterCustomValidators(v *validator.Validate) error {
 	if err := v.RegisterValidation("strongpassword", validateStrongPassword); err != nil {
 		return err
 	}
+	if err := v.RegisterValidation("otpvalidation", validateOTP); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -111,7 +116,20 @@ func validateStrongPassword(fl validator.FieldLevel) bool {
 	return len(password) >= 8 && hasUpper && hasLower && hasDigit && hasSpecial
 }
 
+func validateOTP(fl validator.FieldLevel) bool {
+	otp := fl.Field().String()
+
+	// Regex: ^\d{6}$ means exactly 6 digits
+	match := regexp.MustCompile(`^\d{6}$`).MatchString(otp)
+
+	return match
+}
+
 // GetPasswordRules returns a description of password requirements for API docs/errors
 func GetPasswordRules() string {
 	return "Password must contain at least 8 characters including: 1 uppercase, 1 lowercase, 1 digit, and 1 special character"
+}
+
+func GetOTPRules() string {
+	return "OTP must br 6 digit"
 }

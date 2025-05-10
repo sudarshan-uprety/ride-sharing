@@ -42,7 +42,9 @@ type ForgetPasswordRequest struct {
 	Email string `json:"email" binding:"required"`
 }
 
-type ForgetPasswordConfirmRequest struct {
-	Email string `json:"email" binding:"required"`
-	OTP   string `json:"otp" binding:"required,regexp=^[0-9]{6}$"`
+type ForgetPasswordVerifyRequest struct {
+	Email           string `json:"email" binding:"required"`
+	Otp             string `json:"otp" binding:"required,otpvalidation"`
+	Password        string `json:"password" binding:"required,strongpassword"`
+	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=Password"`
 }

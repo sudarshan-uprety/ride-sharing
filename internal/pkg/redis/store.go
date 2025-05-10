@@ -32,10 +32,33 @@ func (s *OTPStore) SetOTP(ctx context.Context, email, otp string) error {
 	return s.cli.Set(ctx, key, otp, 2*time.Minute).Err()
 }
 
-func (s *OTPStore) VerifyOTP(ctx context.Context, email, otp string) (bool, error) {
-	storedOTP, err := s.cli.Get(ctx, "otp:"+email).Result()
+func (s *OTPStore) VerifyAndDeleteOTP(ctx context.Context, email, otp string) (bool, error) {
+	key := "otp:" + email
+
+	// Use Redis transactions to verify and delete atomically
+	txFn := func(tx *redis.Tx) error {
+		// Get current OTP
+		storedOTP, err := tx.Get(ctx, key).Result()
+		if err != nil {
+			return err
+		}
+
+		// Verify match
+		if storedOTP != otp {
+			return redis.Nil // Treat as "not found"
+		}
+
+		// Delete if matched
+		_, err = tx.Del(ctx, key).Result()
+		return err
+	}
+
+	err := s.cli.Watch(ctx, txFn, key)
+	if err == redis.Nil {
+		return false, nil // OTP mismatch or expired
+	}
 	if err != nil {
 		return false, err
 	}
-	return storedOTP == otp, nil
+	return true, nil
 }

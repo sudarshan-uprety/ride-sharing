@@ -94,3 +94,20 @@ func (h *UserHandler) ForgetPassword(c *gin.Context) {
 
 	response.Success(c, http.StatusAccepted, "OTP sent to user email", res, nil)
 }
+
+func (h *UserHandler) VerifyForgetPassword(c *gin.Context) {
+	var req dto.ForgetPasswordVerifyRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		details := validation.ProcessValidationError(err)
+		response.Error(c, errors.NewValidationError("invalid request body", details))
+		return
+	}
+	res, err := h.service.VerifyForgetPassword(c.Request.Context(), req)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusAccepted, "password reset successfully", res, nil)
+}
