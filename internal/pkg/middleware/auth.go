@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -62,15 +61,11 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 
 		user, err := provider.GetByID(c.Request.Context(), claims.UserID, claims.UserType)
 		if err != nil {
-			log.Println("HERE----------------------------------------------------------", err)
-
-			// Only wrap unknown errors
-			appErr, ok := err.(*errors.AppError)
-			if !ok {
-				appErr = errors.NewInternalError(err)
+			if appErr, ok := err.(*errors.AppError); ok {
+				response.Error(c, appErr)
+			} else {
+				response.Error(c, errors.NewInternalError(err))
 			}
-
-			response.Error(c, appErr)
 			c.Abort()
 			return
 		}

@@ -89,5 +89,6 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*models.User, 
 		}
 		return nil, customErrors.NewInternalError(err)
 	}
+
 	return &user, nil
 }
