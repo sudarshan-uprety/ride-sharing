@@ -12,14 +12,13 @@ import (
 	"ride-sharing/internal/pkg/password"
 	"ride-sharing/internal/pkg/redis"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 type UserService struct {
-	repo         repository.UserRepository
-	tokenService *auth.TokenService
-	OTPStore     *redis.OTPStore
+	repo          repository.UserRepository
+	tokenService  *auth.TokenService
+	OTPStore      *redis.OTPStore
+	userProviders map[auth.UserType]auth.UserProvider
 }
 
 func NewUserService(repo repository.UserRepository, tokenService *auth.TokenService, otpStore *redis.OTPStore) *UserService {
@@ -118,63 +117,40 @@ func (s *UserService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 }
 
 func (s *UserService) RefreshToken(ctx context.Context, req dto.RefreshRequest) (*dto.RefreshResponse, *customError.AppError) {
-	// 1. Validate refresh token structure and signature
 	refreshClaims, err := s.tokenService.ValidateRefreshToken(req.RefreshToken)
 	if err != nil {
 		return nil, customError.NewUnauthorizedError("invalid refresh token")
 	}
 
-	// 2. Verify user type is valid
 	provider, exists := s.userProviders[refreshClaims.UserType]
 	if !exists {
 		return nil, customError.NewUnauthorizedError("invalid user type")
 	}
 
-	// 3. Get current user data
-	user, appErr := provider.GetByID(ctx, refreshClaims.UserID, refreshClaims.UserType)
-	if appErr != nil {
-		return nil, appErr
+	user, err := provider.GetByID(ctx, refreshClaims.UserID, refreshClaims.UserType)
+	if err != nil {
+		return nil, customError.NewInternalError(err) // Wrap the error
 	}
 	if user == nil {
-		return nil, customError.NewUnauthorizedError("user no longer exists")
+		return nil, customError.NewNotFoundError("user not found")
 	}
 
-	// 4. Check password change timestamp
+	userData := user.(*models.User)
+
 	tokenPasswordChangedAt := time.Unix(0, refreshClaims.PasswordChangedAt)
-	if tokenPasswordChangedAt.Before(*user.PasswordChangedAt) {
+	if tokenPasswordChangedAt.Before(*userData.PasswordChangedAt) {
 		return nil, customError.NewUnauthorizedError("password changed - please login again")
 	}
 
-	// 5. Verify refresh token hasn't been invalidated
-	isInvalidated, appErr := s.tokenService.ValidateRefreshToken(req.RefreshToken)
-	if appErr != nil {
-		return nil, appErr
+	accessToken, err := s.tokenService.GenerateAccessToken(userData.ID.String(), auth.UserTypeUser, userData.PasswordChangedAt)
+	if err != nil {
+		return nil, customError.NewInternalError(err)
 	}
-	if isInvalidated {
-		return nil, customError.NewUnauthorizedError("refresh token was revoked")
-	}
-
-	// 6. Generate new token pair
-	tokenPair, appErr := s.tokenService.GenerateAccessToken(user)
-	if appErr != nil {
-		return nil, customError.NewInternalError(appErr)
-	}
-
-	// 7. Invalidate old refresh token (async)
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		if err := s.tokenRepo.InvalidateRefreshToken(ctx, req.RefreshToken); err != nil {
-			s.logger.Error("failed to invalidate refresh token",
-				zap.String("userID", user.ID),
-				zap.Error(err))
-		}
-	}()
 
 	return &dto.RefreshResponse{
-		AccessToken: tokenPair.AccessToken,
+		AccessToken: accessToken,
 	}, nil
+
 }
 
 func (s *UserService) ChangePassword(ctx context.Context, userID string, req dto.ChangePasswordRequest) (*dto.LoginResponse, *customError.AppError) {
