@@ -82,7 +82,7 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 
 		// Compare PasswordChangedAt values
 		if tokenPasswordChangedAt.Before(*userData.PasswordChangedAt) {
-			response.Error(c, errors.NewUnauthorizedError("token is no longer valid due to password change"))
+			response.Error(c, errors.NewUnauthorizedError("password changed - please login again"))
 			c.Abort()
 			return
 		}

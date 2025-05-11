@@ -24,7 +24,7 @@ func SetupRouter(db *gorm.DB, tokenService *auth.TokenService, otpStore *redis.O
 	userProviders := map[auth.UserType]auth.UserProvider{
 		auth.UserTypeUser: provider.NewUserProvider(userRepo),
 	}
-	userService := service.NewUserService(userRepo, tokenService, otpStore)
+	userService := service.NewUserService(userRepo, tokenService, otpStore, userProviders)
 	userHandler := http.NewUserHandler(userService)
 
 	authMiddleware := middleware.NewAuthMiddleware(tokenService, userProviders)

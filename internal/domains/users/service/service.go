@@ -21,11 +21,12 @@ type UserService struct {
 	userProviders map[auth.UserType]auth.UserProvider
 }
 
-func NewUserService(repo repository.UserRepository, tokenService *auth.TokenService, otpStore *redis.OTPStore) *UserService {
+func NewUserService(repo repository.UserRepository, tokenService *auth.TokenService, otpStore *redis.OTPStore, userProviders map[auth.UserType]auth.UserProvider) *UserService {
 	return &UserService{
-		repo:         repo,
-		tokenService: tokenService,
-		OTPStore:     otpStore,
+		repo:          repo,
+		tokenService:  tokenService,
+		OTPStore:      otpStore,
+		userProviders: userProviders,
 	}
 }
 
