@@ -171,6 +171,17 @@ func (h *UserHandler) ForgetPassword(c *gin.Context) {
 	response.Success(c, http.StatusAccepted, "OTP sent to user email", res, nil)
 }
 
+// Verify Forget Password godoc
+// @Summary      Forget password
+// @Description  Forget password
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body  dto.ForgetPasswordVerifyRequest  true  "Verify forget password data"
+// @Success      200      {object}  response.SuccessResponse{data=bool}  "Password reset successfully."
+// @Failure      400      {object}  response.ErrorResponse  "Validation error"
+// @Failure      500      {object}  response.ErrorResponse  "Internal server error"
+// @Router       /users/verify-reset [post]
 func (h *UserHandler) VerifyForgetPassword(c *gin.Context) {
 	var req dto.ForgetPasswordVerifyRequest
 

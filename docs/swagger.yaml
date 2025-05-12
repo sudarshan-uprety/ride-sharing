@@ -20,6 +20,22 @@ definitions:
     required:
     - email
     type: object
+  dto.ForgetPasswordVerifyRequest:
+    properties:
+      confirm_password:
+        type: string
+      email:
+        type: string
+      otp:
+        type: string
+      password:
+        type: string
+    required:
+    - confirm_password
+    - email
+    - otp
+    - password
+    type: object
   dto.LoginRequest:
     properties:
       email:
@@ -299,6 +315,41 @@ paths:
           schema:
             $ref: '#/definitions/response.ErrorResponse'
       summary: Register a new user
+      tags:
+      - users
+  /users/verify-reset:
+    post:
+      consumes:
+      - application/json
+      description: Forget password
+      parameters:
+      - description: Verify forget password data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ForgetPasswordVerifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset successfully.
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  type: boolean
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Forget password
       tags:
       - users
 securityDefinitions:
