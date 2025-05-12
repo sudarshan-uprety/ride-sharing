@@ -20,6 +20,18 @@ func NewUserHandler(service *service.UserService) *UserHandler {
 	return &UserHandler{service: service}
 }
 
+// Register godoc
+// @Summary      Register a new user
+// @Description  Register a new user with email, password, and other details
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body  dto.RegisterRequest  true  "User registration data"
+// @Success      201      {object}  response.SuccessResponse{dto.UserResponse}  "User registered successfully"
+// @Failure      400      {object}  response.ErrorResponse  "Validation error"
+// @Failure      409      {object}  response.ErrorResponse  "User already exists"
+// @Failure      500      {object}  response.ErrorResponse  "Internal server error"
+// @Router       /users/register [post]
 func (h *UserHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

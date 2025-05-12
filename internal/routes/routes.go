@@ -10,6 +10,8 @@ import (
 	"ride-sharing/internal/pkg/redis"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 )
 
@@ -17,6 +19,9 @@ func SetupRouter(db *gorm.DB, tokenService *auth.TokenService, otpStore *redis.O
 	router := gin.Default()
 
 	router.Use(middleware.LoggingMiddleware(), gin.Recovery())
+
+	// Swagger route
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Initialize dependencies
 	userRepo := repository.NewUserRepository(db)

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"ride-sharing/config"
+	_ "ride-sharing/docs"
 	"ride-sharing/internal/domains/users/models"
 	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/database"
@@ -16,6 +17,25 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// @title           Ride Sharing Auth API
+// @version         1.0
+// @description     This is a ride sharing service API.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8080
+// @BasePath  /api/v1
+
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 Type "Bearer" followed by a space and JWT token
 func main() {
 	// Load configuration
 	cfg, err := config.Load()
