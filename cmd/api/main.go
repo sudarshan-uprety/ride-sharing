@@ -80,7 +80,7 @@ func main() {
 	}
 
 	// Setup router
-	router := routes.SetupRouter(db, tokenService, otpStore)
+	router := routes.SetupRouter(db, tokenService, otpStore, cfg)
 
 	// Register custom validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {

@@ -23,7 +23,8 @@ type Config struct {
 		DB       int
 	}
 	Server struct {
-		Port string
+		Port        string
+		Environment string
 	}
 	JWT struct {
 		AccessSecret  string
@@ -59,7 +60,8 @@ func Load() (*Config, error) {
 	cfg.Redis.DB = getEnvAsInt("REDIS_DB", 0)
 
 	// Server configuration
-	cfg.Server.Port = getEnv("PORT", "8080") // Using PORT instead of SERVER_PORT
+	cfg.Server.Port = getEnv("SERVER_PORT", "8080")       // Using PORT instead of SERVER_PORT
+	cfg.Server.Environment = getEnv("ENVIRONMENT", "Dev") // Using Dev instead of SERVER_ENVIRONMENT
 
 	// JWT configuration
 	cfg.JWT.AccessSecret = getEnv("ACCESS_TOKEN_SECRET", "default-secret-key")

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"ride-sharing/config"
 	"ride-sharing/internal/domains/users/delivery/http"
 	"ride-sharing/internal/domains/users/repository"
 	"ride-sharing/internal/domains/users/service"
@@ -15,14 +16,15 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupRouter(db *gorm.DB, tokenService *auth.TokenService, otpStore *redis.OTPStore) *gin.Engine {
+func SetupRouter(db *gorm.DB, tokenService *auth.TokenService, otpStore *redis.OTPStore, serverCfg *config.Config) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(middleware.LoggingMiddleware(), gin.Recovery())
 
 	// Swagger route
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
+	if serverCfg.Server.Environment != "production" {
+		router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
 	// Initialize dependencies
 	userRepo := repository.NewUserRepository(db)
 	// Create user providers
