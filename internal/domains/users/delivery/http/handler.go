@@ -198,3 +198,30 @@ func (h *UserHandler) VerifyForgetPassword(c *gin.Context) {
 
 	response.Success(c, http.StatusAccepted, "password reset successfully", res, nil)
 }
+
+// User profile godoc
+// @Summary      User profile
+// @Description  Change password for authenticated user
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200      {object}  response.SuccessResponse{data=dto.UserResponse}  "User profile fetched"
+// @Failure      401      {object}  response.ErrorResponse  "Unauthorized"
+// @Failure      500      {object}  response.ErrorResponse  "Internal server error"
+// @Router       /users/profile [get]
+func (h *UserHandler) UserProfile(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Error(c, errors.NewUnauthorizedError("user ID not found in context"))
+		return
+	}
+
+	res, err := h.service.UserProfile(c.Request.Context(), userID.(string))
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, "user profile fetched", res, nil)
+}

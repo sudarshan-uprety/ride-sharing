@@ -55,6 +55,7 @@ func SetupRouter(db *gorm.DB, tokenService *auth.TokenService, otpStore *redis.O
 	authRoutes.Use(authMiddleware.Authenticate(), middleware.RequireUserType(auth.UserTypeUser))
 	{
 		authRoutes.POST("/change-password", userHandler.ChangePassword)
+		authRoutes.GET("/profile", userHandler.UserProfile)
 	}
 
 	return router

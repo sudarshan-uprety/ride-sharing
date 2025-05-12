@@ -248,6 +248,36 @@ paths:
       summary: Login a user
       tags:
       - users
+  /users/profile:
+    get:
+      consumes:
+      - application/json
+      description: Change password for authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile fetched
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: User profile
+      tags:
+      - users
   /users/refresh:
     post:
       consumes:

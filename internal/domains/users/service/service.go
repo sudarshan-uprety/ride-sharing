@@ -254,3 +254,19 @@ func (s *UserService) VerifyForgetPassword(ctx context.Context, req dto.ForgetPa
 	// Remaining: send email
 	return true, nil
 }
+
+func (s *UserService) UserProfile(ctx context.Context, UserId string) (*dto.UserResponse, *customError.AppError) {
+	user, err := s.repo.GetByID(ctx, UserId)
+	if err != nil {
+		return nil, customError.NewInternalError(err)
+	}
+	if user == nil {
+		return nil, customError.NewNotFoundError("user not found")
+	}
+	return &dto.UserResponse{
+		ID:       user.ID,
+		Email:    user.Email,
+		FullName: user.FullName,
+		Phone:    user.Phone}, nil
+
+}
