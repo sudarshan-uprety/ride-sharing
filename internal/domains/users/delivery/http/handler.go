@@ -49,6 +49,18 @@ func (h *UserHandler) Register(c *gin.Context) {
 	response.Success(c, http.StatusCreated, "user registered successfully", user, nil)
 }
 
+// Login godoc
+// @Summary      Login a user
+// @Description  Authenticate user and return access & refresh tokens
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body  dto.LoginRequest  true  "User login credentials"
+// @Success      200      {object}  response.SuccessResponse{data=dto.LoginResponse}  "Login successful"
+// @Failure      400      {object}  response.ErrorResponse  "Validation error"
+// @Failure      401      {object}  response.ErrorResponse  "Invalid credentials"
+// @Failure      500      {object}  response.ErrorResponse  "Internal server error"
+// @Router       /users/login [post]
 func (h *UserHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -66,6 +78,18 @@ func (h *UserHandler) Login(c *gin.Context) {
 	response.Success(c, http.StatusOK, "login successful", res, nil)
 }
 
+// Refresh godoc
+// @Summary      Refresh access token
+// @Description  Get new access token using refresh token
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body  dto.RefreshRequest  true  "Refresh token"
+// @Success      200      {object}  response.SuccessResponse{data=dto.RefreshResponse}  "Token refreshed successfully"
+// @Failure      400      {object}  response.ErrorResponse  "Validation error"
+// @Failure      401      {object}  response.ErrorResponse  "Invalid refresh token"
+// @Failure      500      {object}  response.ErrorResponse  "Internal server error"
+// @Router       /users/refresh [post]
 func (h *UserHandler) Refresh(c *gin.Context) {
 	var req dto.RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -83,6 +107,18 @@ func (h *UserHandler) Refresh(c *gin.Context) {
 	response.Success(c, http.StatusOK, "token fetch successfully.", res, nil)
 }
 
+// Password Change godoc
+// @Summary      Password change
+// @Description  Get new access token using refresh token
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body  dto.RefreshRequest  true  "Refresh token"
+// @Success      200      {object}  response.SuccessResponse{data=dto.RefreshResponse}  "Token refreshed successfully"
+// @Failure      400      {object}  response.ErrorResponse  "Validation error"
+// @Failure      401      {object}  response.ErrorResponse  "Invalid refresh token"
+// @Failure      500      {object}  response.ErrorResponse  "Internal server error"
+// @Router       /users/refresh [post]
 func (h *UserHandler) ChangePassword(c *gin.Context) {
 	var req dto.ChangePasswordRequest
 
