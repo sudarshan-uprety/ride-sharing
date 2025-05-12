@@ -18,11 +18,12 @@ import (
 
 func SetupRouter(db *gorm.DB, tokenService *auth.TokenService, otpStore *redis.OTPStore, serverCfg *config.Config) *gin.Engine {
 	router := gin.Default()
-
 	router.Use(middleware.LoggingMiddleware(), gin.Recovery())
 
-	// Swagger route
-	if serverCfg.Server.Environment != "production" {
+	if serverCfg.Server.Environment == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	} else {
+		// Enable Swagger only in non-production
 		router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	}
 	// Initialize dependencies
