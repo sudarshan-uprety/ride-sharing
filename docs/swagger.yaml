@@ -1,5 +1,25 @@
 basePath: /api/v1
 definitions:
+  dto.ChangePasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      current_password:
+        type: string
+      new_password:
+        type: string
+    required:
+    - confirm_password
+    - current_password
+    - new_password
+    type: object
+  dto.ForgetPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   dto.LoginRequest:
     properties:
       email:
@@ -97,6 +117,82 @@ info:
   title: Ride Sharing Auth API
   version: "1.0"
 paths:
+  /users/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Change password for authenticated user
+      parameters:
+      - description: Change password data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password changed successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.LoginResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change user password
+      tags:
+      - users
+  /users/forget-password:
+    post:
+      consumes:
+      - application/json
+      description: Forget password
+      parameters:
+      - description: Forget password data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ForgetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: OTP sent to registered mail
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  type: boolean
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Forget password
+      tags:
+      - users
   /users/login:
     post:
       consumes:
@@ -162,10 +258,6 @@ paths:
               type: object
         "400":
           description: Validation error
-          schema:
-            $ref: '#/definitions/response.ErrorResponse'
-        "401":
-          description: Invalid refresh token
           schema:
             $ref: '#/definitions/response.ErrorResponse'
         "500":

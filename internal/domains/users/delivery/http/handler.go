@@ -87,7 +87,6 @@ func (h *UserHandler) Login(c *gin.Context) {
 // @Param        request  body  dto.RefreshRequest  true  "Refresh token"
 // @Success      200      {object}  response.SuccessResponse{data=dto.RefreshResponse}  "Token refreshed successfully"
 // @Failure      400      {object}  response.ErrorResponse  "Validation error"
-// @Failure      401      {object}  response.ErrorResponse  "Invalid refresh token"
 // @Failure      500      {object}  response.ErrorResponse  "Internal server error"
 // @Router       /users/refresh [post]
 func (h *UserHandler) Refresh(c *gin.Context) {
@@ -107,18 +106,19 @@ func (h *UserHandler) Refresh(c *gin.Context) {
 	response.Success(c, http.StatusOK, "token fetch successfully.", res, nil)
 }
 
-// Password Change godoc
-// @Summary      Password change
-// @Description  Get new access token using refresh token
+// Change Password godoc
+// @Summary      Change user password
+// @Description  Change password for authenticated user
 // @Tags         users
 // @Accept       json
 // @Produce      json
-// @Param        request  body  dto.RefreshRequest  true  "Refresh token"
-// @Success      200      {object}  response.SuccessResponse{data=dto.RefreshResponse}  "Token refreshed successfully"
+// @Security     BearerAuth
+// @Param        request  body  dto.ChangePasswordRequest  true  "Change password data"
+// @Success      200      {object}  response.SuccessResponse{data=dto.LoginResponse}  "Password changed successfully"
 // @Failure      400      {object}  response.ErrorResponse  "Validation error"
-// @Failure      401      {object}  response.ErrorResponse  "Invalid refresh token"
+// @Failure      401      {object}  response.ErrorResponse  "Unauthorized"
 // @Failure      500      {object}  response.ErrorResponse  "Internal server error"
-// @Router       /users/refresh [post]
+// @Router       /users/change-password [post]
 func (h *UserHandler) ChangePassword(c *gin.Context) {
 	var req dto.ChangePasswordRequest
 
@@ -143,6 +143,17 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	response.Success(c, http.StatusOK, "password changed successfully", res, nil)
 }
 
+// Forget Password godoc
+// @Summary      Forget password
+// @Description  Forget password
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body  dto.ForgetPasswordRequest  true  "Forget password data"
+// @Success      202      {object}  response.SuccessResponse{data=bool}  "OTP sent to registered mail"
+// @Failure      400      {object}  response.ErrorResponse  "Validation error"
+// @Failure      500      {object}  response.ErrorResponse  "Internal server error"
+// @Router       /users/forget-password [post]
 func (h *UserHandler) ForgetPassword(c *gin.Context) {
 	var req dto.ForgetPasswordRequest
 
