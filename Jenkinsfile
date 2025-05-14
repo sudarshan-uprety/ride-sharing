@@ -1,50 +1,90 @@
 pipeline {
     agent any
 
+    environment {
+        // Docker image settings
+        DOCKER_IMAGE_NAME = "ride-sharing"
+        DOCKER_IMAGE_TAG = "${env.BRANCH_NAME}-${env.GIT_COMMIT_SHORT}"
+        DOCKER_TAR_FILE = "${DOCKER_IMAGE_NAME}-${DOCKER_IMAGE_TAG}.tar"
+
+        // Dynamic environment detection
+        IS_PROD = (env.BRANCH_NAME == "prod")
+        COMPOSE_FILE = IS_PROD ? "docker-compose-prod.yml" : "docker-compose.yml"
+    }
+
     stages {
         stage('Checkout Code') {
+            steps { checkout scm }
+        }
+
+        stage('Build Docker Image') {
             steps {
-                checkout scm
+                sh """
+                    docker build \
+                        --build-arg APP_ENV=${IS_PROD ? 'production' : 'development'} \
+                        -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
+                        .
+                """
             }
         }
 
-
-        stage('Sync Deployments with rsync') {
+        stage('Save and Transfer Docker Image') {
             steps {
                 script {
-                    def envName = env.BRANCH_NAME.toUpperCase()
-                    def envFileCredentialId = "ECOM_${envName}_ENV"
-                    def composeUpCommand = "sudo docker-compose up --build -d ride_sharing_auth_db_${env.BRANCH_NAME} ride_sharing_auth_service_${env.BRANCH_NAME}"
+                    // 1. Save Docker image as .tar file
+                    sh "docker save -o ${DOCKER_TAR_FILE} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
 
-                    withCredentials([ 
-                        string(credentialsId: 'HOST_IP', variable: 'SERVER_HOST'),
-                        string(credentialsId: 'SERVER_USER', variable: 'SERVER_USER'),
-                        file(credentialsId: 'SERVER_KEY', variable: 'SSH_KEY_PATH'),
-                        string(credentialsId: 'SERVER_PORT', variable: 'SSH_PORT'),
-                        file(credentialsId: envFileCredentialId, variable: 'ENV_FILE')
+                    // 2. SCP the image to the target server
+                    withCredentials([
+                        string(credentialsId: "HOST_IP_${env.BRANCH_NAME.toUpperCase()}", variable: 'SERVER_HOST'),
+                        string(credentialsId: "SERVER_USER_${env.BRANCH_NAME.toUpperCase()}", variable: 'SERVER_USER'),
+                        file(credentialsId: "SERVER_KEY_${env.BRANCH_NAME.toUpperCase()}", variable: 'SSH_KEY_PATH'),
+                        string(credentialsId: "SERVER_PORT_${env.BRANCH_NAME.toUpperCase()}", variable: 'SSH_PORT')
                     ]) {
-                        // Step 1: Create .env file
-                        sh "ls -l \$ENV_FILE"
                         sh """
-                            set -x
-                            echo "Attempting to copy the env file..."
-                            cp "$ENV_FILE" .env
-                            echo "Successfully copied the env file."
+                            scp -i ${SSH_KEY_PATH} -P ${SSH_PORT} \
+                                -o StrictHostKeyChecking=no \
+                                ${DOCKER_TAR_FILE} \
+                                ${SERVER_USER}@${SERVER_HOST}:/tmp/
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy on Remote Server') {
+            steps {
+                script {
+                    withCredentials([
+                        string(credentialsId: "HOST_IP_${env.BRANCH_NAME.toUpperCase()}", variable: 'SERVER_HOST'),
+                        string(credentialsId: "SERVER_USER_${env.BRANCH_NAME.toUpperCase()}", variable: 'SERVER_USER'),
+                        file(credentialsId: "SERVER_KEY_${env.BRANCH_NAME.toUpperCase()}", variable: 'SSH_KEY_PATH'),
+                        string(credentialsId: "SERVER_PORT_${env.BRANCH_NAME.toUpperCase()}", variable: 'SSH_PORT'),
+                        file(credentialsId: "ENV_FILE_${env.BRANCH_NAME.toUpperCase()}", variable: 'ENV_FILE')
+                    ]) {
+                        // 1. Copy compose file and .env
+                        sh """
+                            rsync -avz -e "ssh -i ${SSH_KEY_PATH} -P ${SSH_PORT} -o StrictHostKeyChecking=no" \
+                                ${COMPOSE_FILE} .env \
+                                ${SERVER_USER}@${SERVER_HOST}:/home/${SERVER_USER}/ride-sharing/
                         """
 
-                        // Step 2: Copy files to remote server using rsync
+                        // 2. SSH commands to load image and start containers
                         sh """
-                            rsync -avz --delete --exclude='.git/' --exclude='.github/' -e "ssh -i \$SSH_KEY_PATH -p \$SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" ./ .env \${SERVER_USER}@\${SERVER_HOST}:/home/\${SERVER_USER}/sudarshan/ride-sharing-auth/${env.BRANCH_NAME}/
-                        """
+                            ssh -i ${SSH_KEY_PATH} -p ${SSH_PORT} -o StrictHostKeyChecking=no \
+                                ${SERVER_USER}@${SERVER_HOST} << 'EOF'
+                                cd /home/${SERVER_USER}/ride-sharing
 
-                        // Step 3: SSH to start the docker containers
-                        sh """
-                            ssh -i \$SSH_KEY_PATH -p \$SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \${SERVER_USER}@\${SERVER_HOST} "cd /home/\${SERVER_USER}/sudarshan/ride-sharing-auth/${env.BRANCH_NAME} && ${composeUpCommand}"
-                        """
+                                # Load the Docker image
+                                docker load -i /tmp/${DOCKER_TAR_FILE}
 
-                        // Step 4: Prune unused docker images
-                        sh """
-                            ssh -i \$SSH_KEY_PATH -p \$SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \${SERVER_USER}@\${SERVER_HOST} "sudo docker image prune -a --force"
+                                # Deploy with docker-compose
+                                docker-compose -f ${COMPOSE_FILE} up -d
+
+                                # Cleanup
+                                rm /tmp/${DOCKER_TAR_FILE}
+                                docker image prune -af
+                            EOF
                         """
                     }
                 }
@@ -54,16 +94,14 @@ pipeline {
 
     post {
         always {
-            script {
-                commiterEmail = sh(script: "git show -s --format='%ae'", returnStdout: true).trim()
-            }
+            // Cleanup local .tar file
+            sh "rm -f ${DOCKER_TAR_FILE} || true"
             cleanWs()
         }
         failure {
-            emailext body: '${DEFAULT_CONTENT}',
-                to: commiterEmail, 
-                subject: '${DEFAULT_SUBJECT}', 
-                saveOutput: false
+            emailext body: 'Build failed! Check Jenkins for details.',
+                to: 'team@example.com',
+                subject: '🚨 Deployment Failed: ${env.JOB_NAME}'
         }
     }
 }
