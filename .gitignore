@@ -87,3 +87,6 @@ Temporary Items
 .apdisk
 .env
 *log
+.env.dev
+.env.uat
+.env.prod

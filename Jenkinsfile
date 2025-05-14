@@ -4,7 +4,7 @@ pipeline {
     environment {
         // Docker image settings
         DOCKER_IMAGE_NAME = "ride-sharing"
-        DOCKER_IMAGE_TAG = "${env.BRANCH_NAME}-${env.GIT_COMMIT_SHORT}"
+        DOCKER_IMAGE_TAG = "${env.BRANCH_NAME}"
         DOCKER_TAR_FILE = "${DOCKER_IMAGE_NAME}-${DOCKER_IMAGE_TAG}.tar"
     }
 
@@ -12,48 +12,63 @@ pipeline {
         stage('Setup Environment') {
             steps {
                 script {
-                    // Dynamically set IS_PROD and COMPOSE_FILE
+                    // Simple environment setup based on branch
+                    envName = env.BRANCH_NAME.toUpperCase()
                     IS_PROD = (env.BRANCH_NAME == "prod")
-                    COMPOSE_FILE = IS_PROD ? "docker-compose-prod.yml" : "docker-compose.yml"
-
-                    // Set as environment variables so they're usable in later shell steps
-                    env.IS_PROD = "${IS_PROD}"
-                    env.COMPOSE_FILE = "${COMPOSE_FILE}"
+                    
+                    // Get the environment file credential ID based on branch
+                    envFileCredentialId = "RIDE_AUTH_${envName}_ENV"
+                    
+                    echo "Using environment file from credential: ${envFileCredentialId}"
                 }
             }
         }
 
         stage('Checkout Code') {
-            steps { checkout scm }
+            steps { 
+                checkout scm 
+            }
         }
 
         stage('Build Docker Image') {
             steps {
+                script {
+                    // Fetch the environment file from Jenkins credentials
+                    withCredentials([file(credentialsId: envFileCredentialId, variable: 'ENV_FILE')]) {
+                        // Copy the environment file to the workspace
+                        sh "cp \"${ENV_FILE}\" .env"
+                        
+                        sh "echo 'Env file exists:' && ls -la .env"
+
+                        sh "cat .env"
+                        
+                        // Build the Docker image with the environment file
                 sh """
-                    docker build \
-                        --build-arg APP_ENV=${IS_PROD == 'true' ? 'production' : 'development'} \
-                        -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
-                        .
+                    export APP_ENV=${IS_PROD ? 'production' : 'development'}
+                    docker-compose build ride-sharing
                 """
+                        
+                        // Save the Docker image to a tar file
+                        sh "docker save -o ${DOCKER_TAR_FILE} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    }
+                }
             }
         }
 
-        stage('Save and Transfer Docker Image') {
+        stage('Transfer Docker Image') {
             steps {
                 script {
-                    sh "docker save -o ${DOCKER_TAR_FILE} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-
                     withCredentials([
-                        string(credentialsId: "HOST_IP_${env.BRANCH_NAME.toUpperCase()}", variable: 'SERVER_HOST'),
-                        string(credentialsId: "SERVER_USER_${env.BRANCH_NAME.toUpperCase()}", variable: 'SERVER_USER'),
-                        file(credentialsId: "SERVER_KEY_${env.BRANCH_NAME.toUpperCase()}", variable: 'SSH_KEY_PATH'),
-                        string(credentialsId: "SERVER_PORT_${env.BRANCH_NAME.toUpperCase()}", variable: 'SSH_PORT')
+                        string(credentialsId: 'HOST_IP', variable: 'SERVER_HOST'),
+                        string(credentialsId: 'SERVER_USER', variable: 'SERVER_USER'),
+                        file(credentialsId: 'SERVER_KEY', variable: 'SSH_KEY_PATH'),
+                        string(credentialsId: 'SERVER_PORT', variable: 'SSH_PORT')
                     ]) {
+                        // Transfer Docker image using SCP
                         sh """
-                            scp -i ${SSH_KEY_PATH} -P ${SSH_PORT} \
-                                -o StrictHostKeyChecking=no \
-                                ${DOCKER_TAR_FILE} \
-                                ${SERVER_USER}@${SERVER_HOST}:/tmp/
+                            scp -i "${SSH_KEY_PATH}" -P "${SSH_PORT}" -o StrictHostKeyChecking=no \
+                                "${DOCKER_TAR_FILE}" \
+                                "${SERVER_USER}@${SERVER_HOST}:/home/ubuntu/sudarshan/ride-sharing-auth/${env.BRANCH_NAME}"
                         """
                     }
                 }
@@ -64,27 +79,28 @@ pipeline {
             steps {
                 script {
                     withCredentials([
-                        string(credentialsId: "HOST_IP_${env.BRANCH_NAME.toUpperCase()}", variable: 'SERVER_HOST'),
-                        string(credentialsId: "SERVER_USER_${env.BRANCH_NAME.toUpperCase()}", variable: 'SERVER_USER'),
-                        file(credentialsId: "SERVER_KEY_${env.BRANCH_NAME.toUpperCase()}", variable: 'SSH_KEY_PATH'),
-                        string(credentialsId: "SERVER_PORT_${env.BRANCH_NAME.toUpperCase()}", variable: 'SSH_PORT'),
-                        file(credentialsId: "ENV_FILE_${env.BRANCH_NAME.toUpperCase()}", variable: 'ENV_FILE')
+                        string(credentialsId: 'HOST_IP', variable: 'SERVER_HOST'),
+                        string(credentialsId: 'SERVER_USER', variable: 'SERVER_USER'),
+                        file(credentialsId: 'SERVER_KEY', variable: 'SSH_KEY_PATH'),
+                        string(credentialsId: 'SERVER_PORT', variable: 'SSH_PORT')
                     ]) {
+                        // Deploy on remote server
                         sh """
-                            rsync -avz -e "ssh -i ${SSH_KEY_PATH} -P ${SSH_PORT} -o StrictHostKeyChecking=no" \
-                                ${COMPOSE_FILE} .env \
-                                ${SERVER_USER}@${SERVER_HOST}:/home/${SERVER_USER}/ride-sharing/
-                        """
-
-                        sh """
-                            ssh -i ${SSH_KEY_PATH} -p ${SSH_PORT} -o StrictHostKeyChecking=no \
-                                ${SERVER_USER}@${SERVER_HOST} << 'EOF'
-                                cd /home/${SERVER_USER}/ride-sharing
-                                docker load -i /tmp/${DOCKER_TAR_FILE}
-                                docker-compose -f ${COMPOSE_FILE} up -d
-                                rm /tmp/${DOCKER_TAR_FILE}
-                                docker image prune -af
-                            EOF
+                            ssh -i "${SSH_KEY_PATH}" -p "${SSH_PORT}" -o StrictHostKeyChecking=no \
+                                "${SERVER_USER}@${SERVER_HOST}" << EOF
+                                # Load the Docker image
+                                sudo docker load -i /home/ubuntu/sudarshan/ride-sharing-auth/${env.BRANCH_NAME}/${DOCKER_TAR_FILE}
+                                
+                                # Stop any existing container
+                                sudo docker stop ride-sharing || true
+                                sudo docker rm ride-sharing || true
+                                
+                                # Run the new container
+                                sudo docker run -d --name ride-sharing --restart unless-stopped -p 8080:8080 ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+                                
+                                # Clean up
+                                rm -f /tmp/${DOCKER_TAR_FILE}
+                                sudo docker image prune -f
                         """
                     }
                 }
@@ -94,13 +110,24 @@ pipeline {
 
     post {
         always {
-            sh "rm -f ${DOCKER_TAR_FILE} || true"
-            cleanWs()
+            script {
+                def commiterEmail = sh(script: "git show -s --format='%ae'", returnStdout: true).trim()
+                
+                // Clean up workspace
+                sh "rm -f ${DOCKER_TAR_FILE} || true"
+                sh "docker rmi ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} || true"
+                
+                cleanWs()
+            }
         }
         failure {
-            emailext body: 'Build failed! Check Jenkins for details.',
-                to: 'team@example.com',
-                subject: "🚨 Deployment Failed: ${env.JOB_NAME}"
+            script {
+                def commiterEmail = sh(script: "git show -s --format='%ae'", returnStdout: true).trim()
+                emailext body: '${DEFAULT_CONTENT}',
+                    to: commiterEmail, 
+                    subject: '${DEFAULT_SUBJECT}', 
+                    saveOutput: false
+            }
         }
     }
 }
