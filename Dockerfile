@@ -8,15 +8,14 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /ride-sharing ./cmd/main.go
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /ride-sharing ./cmd/api/main.go
 
 FROM alpine:3.18
 WORKDIR /app
 
 COPY --from=builder /ride-sharing /app/ride-sharing
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY config/prod.yaml /app/config/prod.yaml
-COPY migrations /app/migrations
+
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
