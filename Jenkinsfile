@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Docker image settings
-        DOCKER_IMAGE_NAME = "ride-sharing"
+        DOCKER_IMAGE_NAME = "app"
         DOCKER_IMAGE_TAG = "${env.BRANCH_NAME}"
         DOCKER_TAR_FILE = "${DOCKER_IMAGE_NAME}-${DOCKER_IMAGE_TAG}.tar"
     }
@@ -43,10 +43,10 @@ pipeline {
                         sh "cat .env"
                         
                         // Build the Docker image with the environment file
-                sh """
-                    export APP_ENV=${IS_PROD ? 'production' : 'development'}
-                    docker-compose build ride-sharing
-                """
+                        sh """
+                            export APP_ENV=${IS_PROD ? 'production' : 'development'}
+                            docker-compose build app
+                        """
                         
                         // Save the Docker image to a tar file
                         sh "docker save -o ${DOCKER_TAR_FILE} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
