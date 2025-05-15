@@ -3,99 +3,110 @@ pipeline {
 
     environment {
         DOCKER_IMAGE_NAME = "app"
-        DOCKER_IMAGE_TAG = "${env.BRANCH_NAME ?: 'dev'}"
+        DOCKER_IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
         DOCKER_TAR_FILE = "${DOCKER_IMAGE_NAME}-${DOCKER_IMAGE_TAG}.tar"
+        
+        BRANCH_DIR = "/home/ubuntu/sudarshan/ride-sharing-auth/${env.BRANCH_NAME}/"
+        DEPLOYMENT_TIMEOUT = "10m"
+        HEALTH_CHECK_TIMEOUT = "2m"
     }
 
     stages {
-        stage('Setup Environment') {
+        stage('Verify Environment') {
             steps {
                 script {
-                    envName = (env.BRANCH_NAME ?: "dev").toUpperCase()
-                    IS_PROD = (env.BRANCH_NAME == "prod")
-                    envFileCredentialId = "RIDE_AUTH_${envName}_ENV"
+                    def envName = (env.BRANCH_NAME ?: "dev").toUpperCase()
+                    env.envFileCredentialId = "RIDE_AUTH_${envName}_ENV"
+                    
+                    echo """
+                    ===== Deployment Configuration =====
+                    Environment: ${envName}
+                    Branch: ${env.BRANCH_NAME ?: 'dev'}
+                    Build Number: ${env.BUILD_NUMBER}
+                    Image Tag: ${env.DOCKER_IMAGE_TAG}
+                    Target Directory: ${env.BRANCH_DIR}
+                    """
                 }
             }
         }
 
-        stage('Checkout Code') {
-            steps { 
-                checkout scm 
-            }
-        }
-
-        stage('Build and Save Docker Image') {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    withCredentials([file(credentialsId: envFileCredentialId, variable: 'ENV_FILE')]) {
-                        sh '''#!/bin/bash
-                            # Setup environment
-                            cp "$ENV_FILE" .env
-                            export APP_ENV=${IS_PROD ? 'production' : 'development'}
+                    withCredentials([file(credentialsId: env.envFileCredentialId, variable: 'ENV_FILE')]) {
+                        sh '''
+                            #!/bin/bash
+                            set -e
                             
-                            # Build and save image
-                            docker-compose build app
-                            docker save -o "$DOCKER_TAR_FILE" "$DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG"
+                            echo "===== Preparing environment ====="
+                            # Create a dedicated directory for the env file
+                            mkdir -p config
+                            # Copy with preserved permissions
+                            install -m 600 "$ENV_FILE" config/.env
                             
-                            # Verify files
-                            echo "Build artifacts:"
-                            ls -la "$DOCKER_TAR_FILE" docker-compose.yml .env
+                            echo "===== Building Docker image ====="
+                            docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
+                            
+                            echo "===== Saving Docker image ====="
+                            docker save -o ${DOCKER_TAR_FILE} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+                            
+                            echo "===== Verification ====="
+                            ls -la ${DOCKER_TAR_FILE}
+                            ls -la config/.env
                         '''
                     }
                 }
             }
         }
 
-        stage('Deploy to Remote Server') {
+        stage('Deploy to Server') {
             steps {
                 script {
                     withCredentials([
                         string(credentialsId: 'HOST_IP', variable: 'SERVER_HOST'),
                         string(credentialsId: 'SERVER_USER', variable: 'SERVER_USER'),
                         file(credentialsId: 'SERVER_KEY', variable: 'SSH_KEY_PATH'),
-                        string(credentialsId: 'SERVER_PORT', variable: 'SSH_PORT'),
-                        file(credentialsId: envFileCredentialId, variable: 'ENV_FILE')
+                        string(credentialsId: 'SERVER_PORT', variable: 'SSH_PORT')
                     ]) {
-                        def branchDir = "/home/ubuntu/sudarshan/ride-sharing-auth/${env.BRANCH_NAME}/"
-                        
-                        sh '''#!/bin/bash
-                            # Transfer files securely
-                            scp -i "$SSH_KEY_PATH" -P "$SSH_PORT" -o StrictHostKeyChecking=no \\
-                                "$DOCKER_TAR_FILE" \\
-                                "docker-compose.yml" \\
-                                "$ENV_FILE" \\
-                                "$SERVER_USER@$SERVER_HOST:$branchDir"
-                            
-                            # Deploy commands
-                            ssh -i "$SSH_KEY_PATH" -p "$SSH_PORT" -o StrictHostKeyChecking=no \\
-                                "$SERVER_USER@$SERVER_HOST" << 'EOF'
-                                cd "$branchDir"
-                                mv $(basename "$ENV_FILE") .env
-                                sudo docker load -i "$DOCKER_TAR_FILE"
-                                sudo docker-compose down || true
-                                sudo docker-compose up -d
-                                rm -f "$DOCKER_TAR_FILE"
-                                sudo docker image prune -f
-                            EOF
-                        '''
+                        sh """
+                            # Transfer files
+                            scp -i "$SSH_KEY_PATH" -P "$SSH_PORT" \\
+                                ${DOCKER_TAR_FILE} docker-compose.yml .env \\
+                                ${SERVER_USER}@${SERVER_HOST}:${BRANCH_DIR}
+                            # Execute deployment commands directly
+                            ssh -i "$SSH_KEY_PATH" -p "$SSH_PORT" -tt ${SERVER_USER}@${SERVER_HOST} "
+                                set -e
+                                cd ${BRANCH_DIR}
+                                
+                                export BRANCH_NAME="${env.BRANCH_NAME}"
+                                
+                                # Load Docker image
+                                echo '===== Loading Docker image ====='
+                                docker load -i ${DOCKER_TAR_FILE}
+                                
+                                # Start services
+                                echo '===== Starting services ====='
+                                docker-compose down || true
+                                docker-compose up -d --remove-orphans
+                                
+                                # Verify services
+                                echo '===== Verifying services ====='
+                                timeout ${HEALTH_CHECK_TIMEOUT} bash -c '
+                                    until docker-compose exec -T postgres pg_isready && \\
+                                          docker-compose exec -T redis redis-cli ping | grep -q PONG && \\
+                                          curl -sf http://localhost:8080/health; do
+                                        sleep 5
+                                        echo \"Waiting for services to be healthy...\"
+                                    done'
+                                
+                                # Cleanup
+                                rm -f ${DOCKER_TAR_FILE}
+                                echo '===== Deployment complete ====='
+                            "
+                        """
                     }
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            script {
-                commiterEmail = sh(script: "git show -s --format='%ae'", returnStdout: true).trim()
-            }
-            cleanWs()
-        }
-        failure {
-            emailext body: '${DEFAULT_CONTENT}',
-                to: commiterEmail, 
-                subject: '${DEFAULT_SUBJECT}', 
-                saveOutput: false
         }
     }
 }
