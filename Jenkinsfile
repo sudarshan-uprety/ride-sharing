@@ -44,7 +44,7 @@ pipeline {
                             install -m 600 "$ENV_FILE" .env
                             
                             echo "===== Building Docker image ====="
-                            docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
+                            docker build  --no-cache -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
                             
                             echo "===== Saving Docker image ====="
                             docker save -o ${DOCKER_TAR_FILE} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
