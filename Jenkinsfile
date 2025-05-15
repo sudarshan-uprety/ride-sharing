@@ -40,9 +40,8 @@ pipeline {
                             
                             echo "===== Preparing environment ====="
                             # Create a dedicated directory for the env file
-                            mkdir -p config
                             # Copy with preserved permissions
-                            install -m 600 "$ENV_FILE" config/.env
+                            install -m 600 "$ENV_FILE" .env
                             
                             echo "===== Building Docker image ====="
                             docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
@@ -52,7 +51,7 @@ pipeline {
                             
                             echo "===== Verification ====="
                             ls -la ${DOCKER_TAR_FILE}
-                            ls -la config/.env
+                            ls -la .env
                         '''
                     }
                 }
