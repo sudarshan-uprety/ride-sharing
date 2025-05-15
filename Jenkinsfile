@@ -87,23 +87,15 @@ pipeline {
     post {
         always {
             script {
-                def commiterEmail = sh(script: "git show -s --format='%ae'", returnStdout: true).trim()
-                
-                // Clean up workspace
-                sh "rm -f ${DOCKER_TAR_FILE} || true"
-                sh "docker rmi ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} || true"
-                
-                cleanWs()
+                commiterEmail = sh(script: "git show -s --format='%ae'", returnStdout: true).trim()
             }
+            cleanWs()
         }
         failure {
-            script {
-                def commiterEmail = sh(script: "git show -s --format='%ae'", returnStdout: true).trim()
-                emailext body: '${DEFAULT_CONTENT}',
-                    to: commiterEmail, 
-                    subject: '${DEFAULT_SUBJECT}', 
-                    saveOutput: false
-            }
+            emailext body: '${DEFAULT_CONTENT}',
+                to: commiterEmail, 
+                subject: '${DEFAULT_SUBJECT}', 
+                saveOutput: false
         }
     }
 }
