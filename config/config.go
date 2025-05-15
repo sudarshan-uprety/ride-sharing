@@ -49,9 +49,9 @@ func Load() (*Config, error) {
 	// Database configuration
 	cfg.DB.Host = getEnv("DB_HOST", "localhost")
 	cfg.DB.Port = getEnv("DB_PORT", "5432")
-	cfg.DB.User = getEnv("DB_USER", "postgres") // Default to postgres if not set
-	cfg.DB.Password = getEnv("DB_PASSWORD", "postgres")
-	cfg.DB.Name = getEnv("DB_NAME", "name")
+	cfg.DB.User = getEnv("POSTGRES_USER", "postgres")
+	cfg.DB.Password = getEnv("POSTGRES_PASSWORD", "postgres")
+	cfg.DB.Name = getEnv("POSTGRES_DB", "ride-sharing")
 
 	// Redis configuration
 	cfg.Redis.Host = getEnv("REDIS_HOST", "localhost")
