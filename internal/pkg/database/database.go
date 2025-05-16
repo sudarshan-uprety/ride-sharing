@@ -53,6 +53,7 @@ func NewPostgresDB(cfg DBConfig) (*gorm.DB, error) {
 }
 
 func AutoMigrate(db *gorm.DB, models ...interface{}) error {
+	db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
 	if err := db.AutoMigrate(models...); err != nil {
 		return fmt.Errorf("failed to auto-migrate models: %w", err)
 	}
