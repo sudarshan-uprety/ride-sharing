@@ -25,6 +25,7 @@ type Config struct {
 	Server struct {
 		Port        string
 		Environment string
+		SwaggerURL  string `mapstructure:"SWAGGER_URL"`
 	}
 	JWT struct {
 		AccessSecret  string

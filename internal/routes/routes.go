@@ -16,15 +16,18 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupRouter(db *gorm.DB, tokenService *auth.TokenService, otpStore *redis.OTPStore, serverCfg *config.Config) *gin.Engine {
+func SetupRouter(db *gorm.DB, tokenService *auth.TokenService, otpStore *redis.OTPStore, cfg *config.Config) *gin.Engine {
 	router := gin.Default()
 	router.Use(middleware.LoggingMiddleware(), gin.Recovery())
 
-	if serverCfg.Server.Environment == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	} else {
-		// Enable Swagger only in non-production
-		router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	if cfg.Server.Environment != "production" {
+		// Create dynamic Swagger handler
+		swaggerHandler := ginSwagger.WrapHandler(
+			swaggerFiles.Handler,
+			ginSwagger.URL(cfg.Server.SwaggerURL+"/swagger/doc.json"),
+			ginSwagger.DefaultModelsExpandDepth(-1),
+		)
+		router.GET("/swagger/*any", swaggerHandler)
 	}
 	// Initialize dependencies
 	userRepo := repository.NewUserRepository(db)
