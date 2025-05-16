@@ -39,12 +39,10 @@ pipeline {
                             set -e
                             
                             echo "===== Preparing environment ====="
-                            # Create a dedicated directory for the env file
-                            # Copy with preserved permissions
                             install -m 600 "$ENV_FILE" .env
                             
                             echo "===== Building Docker image ====="
-                            docker build  --no-cache -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
+                            docker build --no-cache -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
                             
                             echo "===== Saving Docker image ====="
                             docker save -o ${DOCKER_TAR_FILE} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
@@ -72,14 +70,17 @@ pipeline {
                             scp -i "$SSH_KEY_PATH" -P "$SSH_PORT" \\
                                 ${DOCKER_TAR_FILE} docker-compose.yml .env \\
                                 ${SERVER_USER}@${SERVER_HOST}:${BRANCH_DIR}
-                            # Execute deployment commands directly
+                            
+                            # Execute deployment
                             ssh -i "$SSH_KEY_PATH" -p "$SSH_PORT" -tt ${SERVER_USER}@${SERVER_HOST} "
                                 set -e
                                 cd ${BRANCH_DIR}
                                 
-                                export BRANCH_NAME="${env.BRANCH_NAME}"
+                                # Set permissions
+                                chmod 600 .env
+                                chmod 644 docker-compose.yml
                                 
-                                # Load Docker image
+                                # Load image
                                 echo '===== Loading Docker image ====='
                                 docker load -i ${DOCKER_TAR_FILE}
                                 
@@ -87,9 +88,8 @@ pipeline {
                                 echo '===== Starting services ====='
                                 docker-compose down || true
                                 DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} docker-compose up -d --remove-orphans
-                                docker-compose up -d --remove-orphans
                                 
-                                # Verify services
+                                # Health checks
                                 echo '===== Verifying services ====='
                                 timeout ${HEALTH_CHECK_TIMEOUT} bash -c '
                                     until docker-compose exec -T postgres pg_isready && \\

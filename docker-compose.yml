@@ -6,8 +6,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    volumes:
-      - ./.env:/app/.env
+    # volumes:
+    #   - ./.env:/app/.env
     container_name: ride-sharing
     restart: unless-stopped
     ports:

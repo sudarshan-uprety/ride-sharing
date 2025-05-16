@@ -15,7 +15,7 @@ FROM alpine:3.18
 WORKDIR /app
 
 COPY --from=builder /ride-sharing /app/ride-sharing
-COPY .env .env
+COPY .env /app/.env
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 
