@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    image: app:${BRANCH_NAME}
+    image: app
     build:
       context: .
       dockerfile: Dockerfile
