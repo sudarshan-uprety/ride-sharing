@@ -86,6 +86,7 @@ pipeline {
                                 # Start services
                                 echo '===== Starting services ====='
                                 docker-compose down || true
+                                DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} docker-compose up -d --remove-orphans
                                 docker-compose up -d --remove-orphans
                                 
                                 # Verify services
