@@ -4,7 +4,6 @@ import (
 	"log"
 	"ride-sharing/config"
 	_ "ride-sharing/docs"
-	ridersModel "ride-sharing/internal/domains/riders/models"
 	userModel "ride-sharing/internal/domains/users/models"
 	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/database"
@@ -76,7 +75,7 @@ func main() {
 	)
 
 	// Auto-migrate models
-	if err := database.AutoMigrate(db, &userModel.User{}, &ridersModel.Rider{}); err != nil {
+	if err := database.AutoMigrate(db, &userModel.User{}); err != nil {
 		log.Fatalf("failed to auto-migrate models: %v", err)
 	}
 
