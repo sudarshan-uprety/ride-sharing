@@ -190,13 +190,13 @@ func (h *UserHandler) VerifyForgetPassword(c *gin.Context) {
 		response.Error(c, errors.NewValidationError("invalid request body", details))
 		return
 	}
-	res, err := h.service.VerifyForgetPassword(c.Request.Context(), req)
+	_, err := h.service.VerifyForgetPassword(c.Request.Context(), req)
 	if err != nil {
 		response.Error(c, err)
 		return
 	}
 
-	response.Success(c, http.StatusAccepted, "password reset successfully", res, nil)
+	response.Success(c, http.StatusAccepted, "password reset successfully", nil, nil)
 }
 
 // User profile godoc
@@ -226,6 +226,17 @@ func (h *UserHandler) UserProfile(c *gin.Context) {
 	response.Success(c, http.StatusOK, "user profile fetched", res, nil)
 }
 
+// Verify User Email godoc
+// @Summary      Verify User Email
+// @Description  Verify User Email
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body  dto.VerifyEmailRequest  true  "Verify user email"
+// @Success      200      {object}  response.SuccessResponse{data=bool}  "Email verified."
+// @Failure      400      {object}  response.ErrorResponse  "Validation error"
+// @Failure      500      {object}  response.ErrorResponse  "Internal server error"
+// @Router       /users/verify-email [post]
 func (h *UserHandler) VerifyEmail(c *gin.Context) {
 	var req dto.VerifyEmailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -234,11 +245,11 @@ func (h *UserHandler) VerifyEmail(c *gin.Context) {
 		return
 	}
 
-	res, err := h.service.VerifyEmail(c.Request.Context(), req)
+	_, err := h.service.VerifyEmail(c.Request.Context(), req)
 	if err != nil {
 		response.Error(c, err)
 		return
 	}
 
-	response.Success(c, http.StatusAccepted, "User verified", res, nil)
+	response.Success(c, http.StatusOK, "User verified", nil, nil)
 }

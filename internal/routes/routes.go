@@ -51,6 +51,7 @@ func SetupRouter(db *gorm.DB, tokenService *auth.TokenService, otpStore *redis.O
 		userRoutes.POST("/refresh", userHandler.Refresh)
 		userRoutes.POST("/forget-password", userHandler.ForgetPassword)
 		userRoutes.POST("/verify-reset", userHandler.VerifyForgetPassword)
+		userRoutes.POST("/verify-email", userHandler.VerifyEmail)
 
 	}
 

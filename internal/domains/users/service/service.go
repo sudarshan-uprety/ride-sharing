@@ -289,15 +289,13 @@ func (s *UserService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 	if user == nil {
 		return false, customError.NewNotFoundError("user not found")
 	}
-	otp := otp.GenerateOTP()
 
-	if err := s.OTPStore.SetOTP(ctx, user.Email, otp, string(constants.OTPVerifyEmail)); err != nil {
-		var conflictErr *customError.AppError
-		if errors.As(err, &conflictErr) && conflictErr.Type == customError.ErrorTypeConflict {
-			// Return the conflict error directly
-			return false, customError.NewConflictError(err.Error())
-		}
+	valid, err := s.OTPStore.VerifyAndDeleteOTP(ctx, req.Email, req.Otp, string(constants.OTPUserRegister))
+	if err != nil {
 		return false, customError.NewInternalError(err)
+	}
+	if !valid {
+		return false, customError.NewVerificationError("invalid or expired OTP")
 	}
 
 	if _, err := s.repo.ActivateUserByEmail(ctx, user); err != nil {
