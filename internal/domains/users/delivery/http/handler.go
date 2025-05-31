@@ -225,3 +225,20 @@ func (h *UserHandler) UserProfile(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "user profile fetched", res, nil)
 }
+
+func (h *UserHandler) VerifyEmail(c *gin.Context) {
+	var req dto.VerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		details := validation.ProcessValidationError(err)
+		response.Error(c, errors.NewValidationError("invalid request body", details))
+		return
+	}
+
+	res, err := h.service.VerifyEmail(c.Request.Context(), req)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusAccepted, "User verified", res, nil)
+}

@@ -56,3 +56,8 @@ type ForgetPasswordVerifyRequest struct {
 	Password        string `json:"password" binding:"required,strongpassword"`
 	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=Password"`
 }
+
+type VerifyEmailRequest struct {
+	Email string `json:"email" binding:"required"`
+	Otp   string `json:"otp" binding:"required,otpvalidation"`
+}

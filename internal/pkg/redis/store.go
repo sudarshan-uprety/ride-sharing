@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"fmt"
 	"ride-sharing/internal/pkg/errors"
 	"time"
 
@@ -16,8 +17,8 @@ func NewOTPStore(client *Client) *OTPStore {
 	return &OTPStore{cli: client.cli}
 }
 
-func (s *OTPStore) SetOTP(ctx context.Context, email, otp string) error {
-	key := "otp:" + email
+func (s *OTPStore) SetOTP(ctx context.Context, email, otp string, otpType string) error {
+	key := fmt.Sprintf("otp:%s:%s", otpType, email)
 
 	// Check if the OTP already exists
 	exists, err := s.cli.Exists(ctx, key).Result()
@@ -32,9 +33,9 @@ func (s *OTPStore) SetOTP(ctx context.Context, email, otp string) error {
 	return s.cli.Set(ctx, key, otp, 2*time.Minute).Err()
 }
 
-func (s *OTPStore) VerifyAndDeleteOTP(ctx context.Context, email, otp string) (bool, error) {
-	key := "otp:" + email
-
+func (s *OTPStore) VerifyAndDeleteOTP(ctx context.Context, email, otp string, otpType string) (bool, error) {
+	key := fmt.Sprintf("otp:%s:%s", otpType, email)
+	println("KEY IS", key)
 	// Use Redis transactions to verify and delete atomically
 	txFn := func(tx *redis.Tx) error {
 		// Get current OTP

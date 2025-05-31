@@ -17,6 +17,7 @@ type UserRepository interface {
 	ExistsByPhone(ctx context.Context, phone string) (bool, error)
 	ChangePassword(ctx context.Context, user *models.User, hashedPassword string) (bool, error)
 	GetByID(ctx context.Context, id string) (*models.User, error)
+	ActivateUserByEmail(ctx context.Context, user *models.User) (bool, error)
 }
 
 type userRepository struct {
@@ -91,4 +92,14 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*models.User, 
 	}
 
 	return &user, nil
+}
+
+func (r *userRepository) ActivateUserByEmail(ctx context.Context, user *models.User) (bool, error) {
+	user.Active = true
+
+	if err := r.db.WithContext(ctx).Save(user).Error; err != nil {
+		return false, customErrors.NewInternalError(err)
+	}
+
+	return true, nil
 }

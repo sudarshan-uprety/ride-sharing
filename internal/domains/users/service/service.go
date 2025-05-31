@@ -7,6 +7,7 @@ import (
 	"ride-sharing/internal/domains/users/models"
 	"ride-sharing/internal/domains/users/repository"
 	"ride-sharing/internal/pkg/auth"
+	"ride-sharing/internal/pkg/constants"
 	customError "ride-sharing/internal/pkg/errors"
 	"ride-sharing/internal/pkg/otp"
 	"ride-sharing/internal/pkg/password"
@@ -69,7 +70,16 @@ func (s *UserService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 	if err := s.repo.Create(ctx, user); err != nil {
 		return nil, customError.NewInternalError(err)
 	}
+	otp := otp.GenerateOTP()
 
+	if err := s.OTPStore.SetOTP(ctx, user.Email, otp, string(constants.OTPUserRegister)); err != nil {
+		var conflictErr *customError.AppError
+		if errors.As(err, &conflictErr) && conflictErr.Type == customError.ErrorTypeConflict {
+			// Return the conflict error directly
+			return nil, customError.NewConflictError(err.Error())
+		}
+		return nil, customError.NewInternalError(err)
+	}
 	return &dto.UserResponse{
 		ID:       user.ID,
 		Email:    user.Email,
@@ -213,7 +223,7 @@ func (s *UserService) ForgetPassword(ctx context.Context, req dto.ForgetPassword
 
 	otp := otp.GenerateOTP()
 
-	if err := s.OTPStore.SetOTP(ctx, user.Email, otp); err != nil {
+	if err := s.OTPStore.SetOTP(ctx, user.Email, otp, string(constants.OTPForgetPassword)); err != nil {
 		var conflictErr *customError.AppError
 		if errors.As(err, &conflictErr) && conflictErr.Type == customError.ErrorTypeConflict {
 			// Return the conflict error directly
@@ -234,7 +244,7 @@ func (s *UserService) VerifyForgetPassword(ctx context.Context, req dto.ForgetPa
 		return false, customError.NewNotFoundError("user not found")
 	}
 
-	valid, err := s.OTPStore.VerifyAndDeleteOTP(ctx, req.Email, req.Otp)
+	valid, err := s.OTPStore.VerifyAndDeleteOTP(ctx, req.Email, req.Otp, string(constants.OTPForgetPassword))
 	if err != nil {
 		return false, customError.NewInternalError(err)
 	}
@@ -269,4 +279,29 @@ func (s *UserService) UserProfile(ctx context.Context, UserId string) (*dto.User
 		FullName: user.FullName,
 		Phone:    user.Phone}, nil
 
+}
+
+func (s *UserService) VerifyEmail(ctx context.Context, req dto.VerifyEmailRequest) (bool, *customError.AppError) {
+	user, err := s.repo.GetByEmail(ctx, req.Email)
+	if err != nil {
+		return false, customError.NewInternalError(err)
+	}
+	if user == nil {
+		return false, customError.NewNotFoundError("user not found")
+	}
+	otp := otp.GenerateOTP()
+
+	if err := s.OTPStore.SetOTP(ctx, user.Email, otp, string(constants.OTPVerifyEmail)); err != nil {
+		var conflictErr *customError.AppError
+		if errors.As(err, &conflictErr) && conflictErr.Type == customError.ErrorTypeConflict {
+			// Return the conflict error directly
+			return false, customError.NewConflictError(err.Error())
+		}
+		return false, customError.NewInternalError(err)
+	}
+
+	if _, err := s.repo.ActivateUserByEmail(ctx, user); err != nil {
+		return false, customError.NewInternalError(err)
+	}
+	return true, nil
 }
