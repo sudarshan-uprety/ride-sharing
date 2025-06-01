@@ -31,6 +31,10 @@ type Config struct {
 		AccessSecret  string
 		RefreshSecret string
 	}
+	Notification struct {
+		Host string
+		Port string
+	}
 	Log struct {
 		Environment string
 		Version     string
@@ -72,6 +76,9 @@ func Load() (*Config, error) {
 	cfg.Log.Version = getEnv("VERSION", "1.0.0")
 	cfg.Log.ServiceName = getEnv("SERVICE_NAME", "auth-service")
 
+	// Notification server config
+	cfg.Notification.Host = getEnv("NOTIFICATION_HOST", "localhost")
+	cfg.Notification.Port = getEnv("NOTIFICATION_PORT", "50051")
 	return cfg, nil
 }
 

@@ -468,21 +468,21 @@ var File_service_proto protoreflect.FileDescriptor
 
 const file_service_proto_rawDesc = "" +
 	"\n" +
-	"\rservice.proto\x12\x03rpc\x1a\x19google/protobuf/any.proto\"\xa6\x01\n" +
+	"\rservice.proto\x12\fnotification\x1a\x19google/protobuf/any.proto\"\xb8\x01\n" +
 	"\x10StandardResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x12'\n" +
-	"\x04data\x18\x03 \x01(\v2\x11.rpc.DataResponseH\x00R\x04data\x12*\n" +
-	"\x05error\x18\x04 \x01(\v2\x12.rpc.ErrorResponseH\x00R\x05errorB\t\n" +
-	"\acontent\"a\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x120\n" +
+	"\x04data\x18\x03 \x01(\v2\x1a.notification.DataResponseH\x00R\x04data\x123\n" +
+	"\x05error\x18\x04 \x01(\v2\x1b.notification.ErrorResponseH\x00R\x05errorB\t\n" +
+	"\acontent\"j\n" +
 	"\fDataResponse\x12.\n" +
-	"\apayload\x18\x01 \x01(\v2\x14.google.protobuf.AnyR\apayload\x12!\n" +
-	"\x04meta\x18\x02 \x01(\v2\r.rpc.MetaDataR\x04meta\"\xca\x01\n" +
+	"\apayload\x18\x01 \x01(\v2\x14.google.protobuf.AnyR\apayload\x12*\n" +
+	"\x04meta\x18\x02 \x01(\v2\x16.notification.MetaDataR\x04meta\"\xd3\x01\n" +
 	"\rErrorResponse\x12\x1d\n" +
 	"\n" +
 	"error_code\x18\x01 \x01(\tR\terrorCode\x12#\n" +
-	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage\x129\n" +
-	"\adetails\x18\x03 \x03(\v2\x1f.rpc.ErrorResponse.DetailsEntryR\adetails\x1a:\n" +
+	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage\x12B\n" +
+	"\adetails\x18\x03 \x03(\v2(.notification.ErrorResponse.DetailsEntryR\adetails\x1a:\n" +
 	"\fDetailsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"O\n" +
@@ -495,19 +495,19 @@ const file_service_proto_rawDesc = "" +
 	"\x03otp\x18\x03 \x01(\tR\x03otp\">\n" +
 	"\x1aForgetPasswordEmailRequest\x12\x0e\n" +
 	"\x02to\x18\x01 \x01(\tR\x02to\x12\x10\n" +
-	"\x03otp\x18\x03 \x01(\tR\x03otp\"\xc3\x01\n" +
+	"\x03otp\x18\x03 \x01(\tR\x03otp\"\xcc\x01\n" +
 	"\vPushRequest\x12!\n" +
 	"\fdevice_token\x18\x01 \x01(\tR\vdeviceToken\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
-	"\x04body\x18\x03 \x01(\tR\x04body\x12.\n" +
-	"\x04data\x18\x04 \x03(\v2\x1a.rpc.PushRequest.DataEntryR\x04data\x1a7\n" +
+	"\x04body\x18\x03 \x01(\tR\x04body\x127\n" +
+	"\x04data\x18\x04 \x03(\v2#.notification.PushRequest.DataEntryR\x04data\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012\xe4\x01\n" +
-	"\x13NotificationService\x12E\n" +
-	"\x11SendRegisterEmail\x12\x19.rpc.RegisterEmailRequest\x1a\x15.rpc.StandardResponse\x12Q\n" +
-	"\x17SendForgetPasswordEmail\x12\x1f.rpc.ForgetPasswordEmailRequest\x1a\x15.rpc.StandardResponse\x123\n" +
-	"\bSendPush\x12\x10.rpc.PushRequest\x1a\x15.rpc.StandardResponseB\x1dZ\x1bride-sharing/internal/protob\x06proto3"
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012\x9a\x02\n" +
+	"\x13NotificationService\x12W\n" +
+	"\x11SendRegisterEmail\x12\".notification.RegisterEmailRequest\x1a\x1e.notification.StandardResponse\x12c\n" +
+	"\x17SendForgetPasswordEmail\x12(.notification.ForgetPasswordEmailRequest\x1a\x1e.notification.StandardResponse\x12E\n" +
+	"\bSendPush\x12\x19.notification.PushRequest\x1a\x1e.notification.StandardResponseB\x1dZ\x1bride-sharing/internal/protob\x06proto3"
 
 var (
 	file_service_proto_rawDescOnce sync.Once
@@ -523,30 +523,30 @@ func file_service_proto_rawDescGZIP() []byte {
 
 var file_service_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_service_proto_goTypes = []any{
-	(*StandardResponse)(nil),           // 0: rpc.StandardResponse
-	(*DataResponse)(nil),               // 1: rpc.DataResponse
-	(*ErrorResponse)(nil),              // 2: rpc.ErrorResponse
-	(*MetaData)(nil),                   // 3: rpc.MetaData
-	(*RegisterEmailRequest)(nil),       // 4: rpc.RegisterEmailRequest
-	(*ForgetPasswordEmailRequest)(nil), // 5: rpc.ForgetPasswordEmailRequest
-	(*PushRequest)(nil),                // 6: rpc.PushRequest
-	nil,                                // 7: rpc.ErrorResponse.DetailsEntry
-	nil,                                // 8: rpc.PushRequest.DataEntry
+	(*StandardResponse)(nil),           // 0: notification.StandardResponse
+	(*DataResponse)(nil),               // 1: notification.DataResponse
+	(*ErrorResponse)(nil),              // 2: notification.ErrorResponse
+	(*MetaData)(nil),                   // 3: notification.MetaData
+	(*RegisterEmailRequest)(nil),       // 4: notification.RegisterEmailRequest
+	(*ForgetPasswordEmailRequest)(nil), // 5: notification.ForgetPasswordEmailRequest
+	(*PushRequest)(nil),                // 6: notification.PushRequest
+	nil,                                // 7: notification.ErrorResponse.DetailsEntry
+	nil,                                // 8: notification.PushRequest.DataEntry
 	(*anypb.Any)(nil),                  // 9: google.protobuf.Any
 }
 var file_service_proto_depIdxs = []int32{
-	1, // 0: rpc.StandardResponse.data:type_name -> rpc.DataResponse
-	2, // 1: rpc.StandardResponse.error:type_name -> rpc.ErrorResponse
-	9, // 2: rpc.DataResponse.payload:type_name -> google.protobuf.Any
-	3, // 3: rpc.DataResponse.meta:type_name -> rpc.MetaData
-	7, // 4: rpc.ErrorResponse.details:type_name -> rpc.ErrorResponse.DetailsEntry
-	8, // 5: rpc.PushRequest.data:type_name -> rpc.PushRequest.DataEntry
-	4, // 6: rpc.NotificationService.SendRegisterEmail:input_type -> rpc.RegisterEmailRequest
-	5, // 7: rpc.NotificationService.SendForgetPasswordEmail:input_type -> rpc.ForgetPasswordEmailRequest
-	6, // 8: rpc.NotificationService.SendPush:input_type -> rpc.PushRequest
-	0, // 9: rpc.NotificationService.SendRegisterEmail:output_type -> rpc.StandardResponse
-	0, // 10: rpc.NotificationService.SendForgetPasswordEmail:output_type -> rpc.StandardResponse
-	0, // 11: rpc.NotificationService.SendPush:output_type -> rpc.StandardResponse
+	1, // 0: notification.StandardResponse.data:type_name -> notification.DataResponse
+	2, // 1: notification.StandardResponse.error:type_name -> notification.ErrorResponse
+	9, // 2: notification.DataResponse.payload:type_name -> google.protobuf.Any
+	3, // 3: notification.DataResponse.meta:type_name -> notification.MetaData
+	7, // 4: notification.ErrorResponse.details:type_name -> notification.ErrorResponse.DetailsEntry
+	8, // 5: notification.PushRequest.data:type_name -> notification.PushRequest.DataEntry
+	4, // 6: notification.NotificationService.SendRegisterEmail:input_type -> notification.RegisterEmailRequest
+	5, // 7: notification.NotificationService.SendForgetPasswordEmail:input_type -> notification.ForgetPasswordEmailRequest
+	6, // 8: notification.NotificationService.SendPush:input_type -> notification.PushRequest
+	0, // 9: notification.NotificationService.SendRegisterEmail:output_type -> notification.StandardResponse
+	0, // 10: notification.NotificationService.SendForgetPasswordEmail:output_type -> notification.StandardResponse
+	0, // 11: notification.NotificationService.SendPush:output_type -> notification.StandardResponse
 	9, // [9:12] is the sub-list for method output_type
 	6, // [6:9] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name

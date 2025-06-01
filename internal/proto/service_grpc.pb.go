@@ -19,9 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NotificationService_SendRegisterEmail_FullMethodName       = "/rpc.NotificationService/SendRegisterEmail"
-	NotificationService_SendForgetPasswordEmail_FullMethodName = "/rpc.NotificationService/SendForgetPasswordEmail"
-	NotificationService_SendPush_FullMethodName                = "/rpc.NotificationService/SendPush"
+	NotificationService_SendRegisterEmail_FullMethodName       = "/notification.NotificationService/SendRegisterEmail"
+	NotificationService_SendForgetPasswordEmail_FullMethodName = "/notification.NotificationService/SendForgetPasswordEmail"
+	NotificationService_SendPush_FullMethodName                = "/notification.NotificationService/SendPush"
 )
 
 // NotificationServiceClient is the client API for NotificationService service.
@@ -176,7 +176,7 @@ func _NotificationService_SendPush_Handler(srv interface{}, ctx context.Context,
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var NotificationService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "rpc.NotificationService",
+	ServiceName: "notification.NotificationService",
 	HandlerType: (*NotificationServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

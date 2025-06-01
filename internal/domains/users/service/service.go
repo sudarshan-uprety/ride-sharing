@@ -3,12 +3,14 @@ package service
 import (
 	"context"
 	"errors"
+	"log"
 	"ride-sharing/internal/domains/users/dto"
 	"ride-sharing/internal/domains/users/models"
 	"ride-sharing/internal/domains/users/repository"
 	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/constants"
 	customError "ride-sharing/internal/pkg/errors"
+	email "ride-sharing/internal/pkg/grpcclient"
 	"ride-sharing/internal/pkg/otp"
 	"ride-sharing/internal/pkg/password"
 	"ride-sharing/internal/pkg/redis"
@@ -16,18 +18,20 @@ import (
 )
 
 type UserService struct {
-	repo          repository.UserRepository
-	tokenService  *auth.TokenService
-	OTPStore      *redis.OTPStore
-	userProviders map[auth.UserType]auth.UserProvider
+	repo               repository.UserRepository
+	tokenService       *auth.TokenService
+	OTPStore           *redis.OTPStore
+	notificationClient *email.NotificationClient
+	userProviders      map[auth.UserType]auth.UserProvider
 }
 
-func NewUserService(repo repository.UserRepository, tokenService *auth.TokenService, otpStore *redis.OTPStore, userProviders map[auth.UserType]auth.UserProvider) *UserService {
+func NewUserService(repo repository.UserRepository, tokenService *auth.TokenService, otpStore *redis.OTPStore, notificationClient *email.NotificationClient, userProviders map[auth.UserType]auth.UserProvider) *UserService {
 	return &UserService{
-		repo:          repo,
-		tokenService:  tokenService,
-		OTPStore:      otpStore,
-		userProviders: userProviders,
+		repo:               repo,
+		tokenService:       tokenService,
+		OTPStore:           otpStore,
+		userProviders:      userProviders,
+		notificationClient: notificationClient,
 	}
 }
 
@@ -79,6 +83,13 @@ func (s *UserService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 			return nil, customError.NewConflictError(err.Error())
 		}
 		return nil, customError.NewInternalError(err)
+	}
+
+	// s.notificationClient.SendRegisterEmail(ctx, req.Email, otp)
+
+	if _, err := s.notificationClient.SendRegisterEmail(ctx, req.Email, otp); err != nil {
+		log.Printf("Failed to send register email: %v", err)
+		// You can decide whether this should return a user-facing error or not
 	}
 	return &dto.UserResponse{
 		ID:       user.ID,

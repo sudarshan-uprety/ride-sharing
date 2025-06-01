@@ -7,6 +7,7 @@ import (
 	userModel "ride-sharing/internal/domains/users/models"
 	"ride-sharing/internal/pkg/auth"
 	"ride-sharing/internal/pkg/database"
+	"ride-sharing/internal/pkg/grpcclient"
 	"ride-sharing/internal/pkg/logging"
 	"ride-sharing/internal/pkg/redis"
 	"ride-sharing/internal/pkg/validation"
@@ -73,13 +74,17 @@ func main() {
 		time.Hour*24*7, // Refresh token expires in 1 week
 	)
 
+	notificationService, err := grpcclient.NewNotificationClient(cfg)
+	if err != nil {
+		log.Fatalf("failed to establish connection with notification server: %v", err)
+	}
 	// Auto-migrate models
 	if err := database.AutoMigrate(db, &userModel.User{}); err != nil {
 		log.Fatalf("failed to auto-migrate models: %v", err)
 	}
 
 	// Setup router
-	router := routes.SetupRouter(db, tokenService, otpStore, cfg)
+	router := routes.SetupRouter(db, tokenService, otpStore, notificationService, cfg)
 
 	// Register custom validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
