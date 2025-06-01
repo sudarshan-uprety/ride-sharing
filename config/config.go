@@ -35,6 +35,10 @@ type Config struct {
 		Host string
 		Port string
 	}
+	Kafka struct {
+		Host string
+		Port string
+	}
 	Log struct {
 		Environment string
 		Version     string
@@ -65,8 +69,8 @@ func Load() (*Config, error) {
 	cfg.Redis.DB = getEnvAsInt("REDIS_DB", 0)
 
 	// Server configuration
-	cfg.Server.Port = getEnv("SERVER_PORT", "8080")       // Using PORT instead of SERVER_PORT
-	cfg.Server.Environment = getEnv("ENVIRONMENT", "Dev") // Using Dev instead of SERVER_ENVIRONMENT
+	cfg.Server.Port = getEnv("SERVER_PORT", "8080")
+	cfg.Server.Environment = getEnv("ENVIRONMENT", "Dev")
 
 	// JWT configuration
 	cfg.JWT.AccessSecret = getEnv("ACCESS_TOKEN_SECRET", "default-secret-key")

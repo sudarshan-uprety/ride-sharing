@@ -2,7 +2,6 @@ package grpcclient
 
 import (
 	"context"
-	"log"
 	"ride-sharing/config"
 	"ride-sharing/internal/proto"
 
@@ -42,7 +41,6 @@ func (n *NotificationClient) SendRegisterEmail(ctx context.Context, to string, o
 
 	resp, err := n.client.SendRegisterEmail(ctx, req)
 	if err != nil {
-		log.Printf("gRPC SendRegisterEmail failed: %v", err)
 		return nil, err
 	}
 
