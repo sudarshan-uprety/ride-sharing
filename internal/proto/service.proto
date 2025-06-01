@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package rpc;
+option go_package = "ride-sharing/internal/proto";
+
+import "google/protobuf/any.proto";
+
+service NotificationService {
+  rpc SendRegisterEmail (RegisterEmailRequest) returns (StandardResponse);
+  rpc SendForgetPasswordEmail (ForgetPasswordEmailRequest) returns (StandardResponse);
+  rpc SendPush (PushRequest) returns (StandardResponse);
+}
+message StandardResponse {
+  bool success = 1;
+  string message = 2;
+  oneof content {
+    DataResponse data = 3;
+    ErrorResponse error = 4;
+  }
+}
+
+message DataResponse {
+  google.protobuf.Any payload = 1;
+  MetaData meta = 2;
+}
+
+message ErrorResponse {
+  string error_code = 1;
+  string error_message = 2;
+  map<string, string> details = 3;
+}
+
+message MetaData {
+  int32 page = 1;
+  int32 per_page = 2;
+  int32 total = 3;
+}
+
+message RegisterEmailRequest {
+  string to = 1;
+  string otp = 3;
+}
+
+message ForgetPasswordEmailRequest {
+  string to = 1;
+  string otp = 3;
+}
+
+message PushRequest {
+  string device_token = 1;
+  string title = 2;
+  string body = 3;
+  map<string, string> data = 4;
+}
