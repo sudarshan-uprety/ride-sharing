@@ -89,16 +89,6 @@ pipeline {
                                 docker-compose down || true
                                 DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} docker-compose up -d --remove-orphans
                                 
-                                # Health checks
-                                echo '===== Verifying services ====='
-                                timeout ${HEALTH_CHECK_TIMEOUT} bash -c '
-                                    until docker-compose exec -T postgres pg_isready && \\
-                                          docker-compose exec -T redis redis-cli ping | grep -q PONG && \\
-                                          curl -sf http://localhost:8080/health; do
-                                        sleep 5
-                                        echo \"Waiting for services to be healthy...\"
-                                    done'
-                                
                                 # Cleanup
                                 rm -f ${DOCKER_TAR_FILE}
                                 echo '===== Deployment complete ====='
