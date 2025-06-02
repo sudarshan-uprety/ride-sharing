@@ -36,8 +36,9 @@ type Config struct {
 		Port string
 	}
 	Kafka struct {
-		Host string
-		Port string
+		Brokers  []string
+		Topic    string
+		Balancer string
 	}
 	Log struct {
 		Environment string
@@ -83,6 +84,11 @@ func Load() (*Config, error) {
 	// Notification server config
 	cfg.Notification.Host = getEnv("NOTIFICATION_HOST", "localhost")
 	cfg.Notification.Port = getEnv("NOTIFICATION_PORT", "50051")
+
+	// fallback kafka server config
+	cfg.Kafka.Brokers = []string{getEnv("KAFKA_BROKER", "localhost:9092")}
+	cfg.Kafka.Topic = getEnv("KAFKA_TOPIC", "default-topic")
+	cfg.Kafka.Balancer = getEnv("KAFKA_BALANCER", "least-bytes")
 	return cfg, nil
 }
 
