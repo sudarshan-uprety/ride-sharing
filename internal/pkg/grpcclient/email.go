@@ -120,5 +120,8 @@ func (n *NotificationClient) SendForgetPasswordEmail(ctx context.Context, to str
 }
 
 func exponentialBackoff(attempt int) time.Duration {
-	return time.Duration(math.Pow(2, float64(attempt))) * time.Second
+	base := math.Pow(2, float64(attempt))
+	scale := 3.0 / (2 + 4)
+	scaledDelay := base * scale
+	return time.Duration(scaledDelay * float64(time.Second))
 }
