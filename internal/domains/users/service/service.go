@@ -242,6 +242,10 @@ func (s *UserService) ForgetPassword(ctx context.Context, req dto.ForgetPassword
 		}
 		return false, customError.NewInternalError(err)
 	}
+	if _, err := s.notificationClient.SendForgetPasswordEmail(ctx, req.Email, otp); err != nil {
+		log.Printf("Failed to send forget-password email: %v", err)
+		// You can decide whether this should return a user-facing error or not
+	}
 	// remaining: send email functionality
 	return true, nil
 }

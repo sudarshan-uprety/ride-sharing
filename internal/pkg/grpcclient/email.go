@@ -66,16 +66,30 @@ func (n *NotificationClient) SendRegisterEmail(ctx context.Context, to string, o
 
 }
 
-// func (n *NotificationClient) SendForgetPasswordEmail(ctx context.Context, to string, otp string) (bool, error) {
-// 	req := &proto.ForgetPasswordEmailRequest{
-// 		To:  to,
-// 		Otp: otp,
-// 	}
+func (n *NotificationClient) SendForgetPasswordEmail(ctx context.Context, to string, otp string) (bool, error) {
+	req := &proto.ForgetPasswordEmailRequest{
+		To:  to,
+		Otp: otp,
+	}
 
-// 	resp, err := n.client.SendForgetPasswordEmail(ctx, req)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	for attempt := 1; attempt <= 3; attempt++ {
+		_, err := n.client.SendForgetPasswordEmail(ctx, req)
+		if err == nil {
+			return true, nil
+		}
+		// lastErr := err
+		time.Sleep(time.Duration(math.Pow(2, float64(attempt))) * time.Second)
+	}
 
-// 	return resp, nil
-// }
+	// err := n.kafka.Produce("notification-topic", map[string]string{
+	// 	"type": "register_email",
+	// 	"to":   to,
+	// 	"otp":  otp,
+	// })
+	// if err != nil {
+	// 	log.Printf("Failed to enqueue message to Kafka: %v", err)
+	// 	return false, errors.New("all gRPC attempts failed and Kafka fallback also failed")
+	// }
+
+	return false, errors.New("email queued in Kafka due to notification service downtime")
+}
