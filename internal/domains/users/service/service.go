@@ -85,11 +85,8 @@ func (s *UserService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 		return nil, customError.NewInternalError(err)
 	}
 
-	// s.notificationClient.SendRegisterEmail(ctx, req.Email, otp)
-
 	if _, err := s.notificationClient.SendRegisterEmail(ctx, req.Email, otp); err != nil {
-		log.Printf("Failed to send register email: %v", err)
-		// You can decide whether this should return a user-facing error or not
+		return nil, customError.NewInternalError(err)
 	}
 	return &dto.UserResponse{
 		ID:       user.ID,
