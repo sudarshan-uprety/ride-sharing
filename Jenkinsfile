@@ -30,6 +30,16 @@ pipeline {
             }
         }
 
+        stage('Static Analysis') {
+            steps {
+                echo "Running Staticcheck..."
+                sh '''
+                    cd ${WORKSPACE}
+                    staticcheck ./...
+                '''
+            }
+        }
+        
         stage('Build Docker Image') {
             steps {
                 script {
