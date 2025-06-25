@@ -13,10 +13,11 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+type contextKey string
+
 const (
-	// Context keys for tracking request information
-	RequestIDKey  = "x-request-id"
-	CorrelationID = "x-correlation-id"
+	RequestIDKey  contextKey = "x-request-id"
+	CorrelationID contextKey = "x-correlation-id"
 )
 
 var (
@@ -180,7 +181,7 @@ func (l *Logger) Shutdown() error {
 }
 
 // Helper to extract string values from context
-func getStringFromContext(ctx context.Context, key string) string {
+func getStringFromContext(ctx context.Context, key contextKey) string {
 	if val, ok := ctx.Value(key).(string); ok {
 		return val
 	}

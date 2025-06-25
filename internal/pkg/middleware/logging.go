@@ -17,25 +17,27 @@ func LoggingMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 
-		// Get or generate tracking IDs
-		requestID := c.GetHeader(logging.RequestIDKey)
-		if requestID == "" {
-			requestID = uuid.New().String()
+		// Generate new IDs (we'll override if headers exist)
+		requestID := uuid.New().String()
+		correlationID := uuid.New().String()
+
+		// Check for existing headers
+		if h := c.GetHeader(string(logging.RequestIDKey)); h != "" {
+			requestID = h
+		}
+		if h := c.GetHeader(string(logging.CorrelationID)); h != "" {
+			correlationID = h
 		}
 
-		correlationID := c.GetHeader(logging.CorrelationID)
-		if correlationID == "" {
-			correlationID = uuid.New().String()
-		}
-
-		// Add IDs to context and headers
-		ctx := context.WithValue(c.Request.Context(), logging.RequestIDKey, requestID)
+		// Add IDs to context
+		ctx := c.Request.Context()
+		ctx = context.WithValue(ctx, logging.RequestIDKey, requestID)
 		ctx = context.WithValue(ctx, logging.CorrelationID, correlationID)
 		c.Request = c.Request.WithContext(ctx)
 
-		// Set response headers for tracking
-		c.Writer.Header().Set(logging.RequestIDKey, requestID)
-		c.Writer.Header().Set(logging.CorrelationID, correlationID)
+		// Set response headers
+		c.Writer.Header().Set(string(logging.RequestIDKey), requestID)
+		c.Writer.Header().Set(string(logging.CorrelationID), correlationID)
 
 		// Get logger with request context
 		logger := logging.GetLogger().WithContext(ctx)
